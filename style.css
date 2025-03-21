@@ -1,0 +1,239 @@
+body {
+	font-family: Helvetica, sans-serif;
+	font-size: 90%;
+	margin: 0;
+	padding: 10px;
+	background-color: #fcfcfc;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+button, input {
+	margin: 5px;
+}
+
+button {
+	cursor: pointer;
+}
+
+button.main {
+	background-color: #bbeaff;
+	border: solid 1px #777;
+	border-radius: 2px;
+	padding: 3px 10px;
+}
+button.main:hover {
+	background-color: #94deff;
+}
+
+fieldset {
+	overflow: hidden;
+	height: 0;
+	margin-bottom: 15px;
+	padding: 5px;
+	border: 1px solid #eee;
+}
+fieldset.open {
+	height: auto;
+	border-color: #ccc;
+}
+
+fieldset legend {
+	background-color: #eee;
+	padding: 3px 10px;
+	border: 1px solid #999;
+	border-radius: 3px;
+}
+fieldset.open legend {
+	background-color: #bbeaff;
+}
+
+fieldset legend span {
+	font-size: 9pt;
+}
+
+fieldset textarea {
+	width: calc(100% - 10px);
+	margin: 5px 0;
+}
+
+table, th, td {
+	border: 1px solid #555;
+	border-collapse: collapse;
+	padding: 5px;
+	font-size: 10pt;
+}
+
+table.common {
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+table.common th {
+	font-size: 9pt;
+}
+
+table.common .proc {
+	font-size: 9pt;
+}
+
+table.common tbody tr:hover {
+	background-color: #fffaaf70;
+}
+
+table.db thead {background-color: #ccc}
+table.db tbody tr:nth-child(odd) {background-color: #eee}
+table.db th, table.db td {padding: 5px 8px; white-space: normal}
+table.db td.pre {white-space: pre}
+
+warn {
+	color: #000;
+	background-color: #fff009;
+	border-radius: 20px;
+}
+
+th.pointer.clicked-on, td.pointer.clicked-on {
+	background-color: #bbeaff !important;
+}
+th.pointer.clicked-on:hover, td.pointer.clicked-on:hover,
+th.pointer:hover, td.pointer:hover {
+	background-color: #94deff !important;
+}
+
+.pointer {
+	cursor: pointer;
+}
+
+.reload-ico:before {
+	content: '⟲';
+}
+
+.loadbar {
+	display: inline-block;
+	height: 9px;
+	width: 150px;
+	border: solid 1px #ccc;
+	margin: 0 8px;
+	background-image: url(/img/loader-line.gif);
+	background-position-x: 575px;
+	background-position-y: 307px;
+}
+
+.progressbar {
+	float: left;
+	display: inline-block;
+	width: 100px;
+	height: 9pt;
+	margin-left: 2px;
+	margin-right: 4px;
+	border: 1px solid #aaa;
+}
+.progressbar div {
+	display: inline-block;
+	height: 9pt;
+	background-color: #f3f843;
+}
+.progressbar div.done {
+	background-color: #53c13c;
+}
+
+.process-info {
+	display: inline-block;
+	font-size: 9pt;
+}
+.process-info .progressbar {
+	width: 150px;
+}
+
+.template {
+	display: none;
+}
+
+.doc-description {
+	max-width: 400px;
+	line-break: anywhere;
+}
+
+span.inactive, sup.inactive {
+	background-color: #eee;
+	color: #555;
+}
+
+span.active {
+	background-color: #bbeaff;
+}
+
+span.currency span {
+	margin-right: 5px;
+}
+span.currency:after {
+	content: '\20bd';
+	font-size: 80%;
+}
+
+table:not(.full-view) th.full-view, td.full-view { display: none; }
+
+table td.tw { padding-left: 10px; padding-right: 10px; }
+
+.offers tbody a { color: #36aaec; }
+.actions a, .action a { color: #36aaec; }
+
+#productTable tbody { background-color: #f5f5f5; }
+#productTable tr.offers { background-color: #fff; }
+#productTable tr.offers tbody { background-color: #fafafa; }
+#productTable tr.offers tbody td:first-child { background-color: #bbeaff; }
+#productTable th.name { width: 500px; }
+#productTable th.quantity { width: 30px; }
+#productTable th.reserved { width: 30px; }
+#productTable th.ordoc { min-width: 50px; }
+#productTable th.price { width: 90px; }
+#productTable td.price { text-align: right; }
+#productTable tr.offers th { padding: 0; }
+#productTable tr.offers th.name { width: 600px; }
+#productTable tr.offers th.quantity { width: 40px; }
+#productTable tr.offers th.reserved { width: 40px; }
+
+/*#productTable.product-type3 tbody :not(tr[product-type="3"])*/
+#productTable:not(.product-fix) .fix-only,
+#productTable:not(.product-price) .price-view-only,
+#productTable.product-price th:not(.price-view),
+#productTable.product-price td:not(.price-view),
+#productTable.product-price tbody tr.offers,
+#productTable:not(.product-offers) tbody tr.offers,
+#productTable tbody tr.offers:not(.full-view) tr.full-view,
+#productTable.product-active tbody tr[product-active="N"],
+#productTable.product-inactive tbody tr[product-active="Y"],
+#productTable.product-type3 tbody tr[product-type="1"] {
+	display: none;
+}
+#productTable tbody tr.offers.full-view,
+#productTable tbody tr.offers.simple-view {
+	display: table-row;
+}
+#productTable.product-offers th.quantity,
+#productTable.product-active th.active,
+#productTable.product-type3 th.offers {
+	background-color: #bbeaff;
+	/*background-color: #bbea00;*/
+}
+#productTable.product-inactive th.active {
+	background-color: #fdab60;
+}
+
+#productStruct span {
+	display: inline-block;
+	padding: 3px 6px;
+	margin: 2px 5px;
+	border: solid 1px #999;
+	border-radius: 3px;
+}
+
+div.actions tr:not(.open) {
+	display: none;
+}
