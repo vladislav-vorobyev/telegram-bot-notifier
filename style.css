@@ -237,3 +237,47 @@ table td.tw { padding-left: 10px; padding-right: 10px; }
 div.actions tr:not(.open) {
 	display: none;
 }
+
+.print-r-tree .open-all,
+.print-r-tree .close-all,
+.print-r-tree .toggle-a {
+	display: inline-block;
+	vertical-align: middle;
+	height: .8em;
+	line-height: .7;
+	padding: 0 4px;
+	margin: 0 6px;
+	color: steelblue;
+	border: solid 1px #999;
+	border-radius: 3px;
+}
+.print-r-tree .toggle-a:before {
+	content: '+';
+}
+.print-r-tree .open > .toggle-a:before {
+	content: '-';
+}
+.print-r-tree .open-all:before {
+	content: '+…';
+}
+.print-r-tree .close-all:before {
+	content: '-…';
+}
+.print-r-tree span.a-box:not(.open) {
+	display: inline-block;
+	vertical-align: middle;
+	white-space: nowrap;
+	max-width: var(--line-limit, 70vw);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.print-r-tree span.a-box:not(.open) span {
+	display: inline !important;
+}
+.print-r-tree span.a-box:not(.open) span .toggle-a {
+	display: none;
+}
+.print-r-tree span.a-box:not(.open) .open-all,
+.print-r-tree span.a-box:not(.open) .close-all {
+	display: none;
+}

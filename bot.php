@@ -88,24 +88,7 @@ if (isset($_GET['log'])) {
 	echo "Last {$limit} from log:\n";
 	$result = DB::get_last_log($limit);
 	// print_r($response);
-	?>
-	<table id="log" class="db">
-	<?php
-	foreach ($result as $i => &$row) {
-		if ($i === 0) {
-			echo "<thead><tr>";
-			foreach ($row as $key => &$val) echo "<th>$key</th>";
-			echo "</tr></thead>\n";
-		}
-		echo "<tr>";
-		foreach ($row as $key => &$val) {
-			echo "<td class='t-$key'>$val</td>";
-		}
-		echo "</tr>\n";
-	}
-	?>
-	</table>
-	<?php
+	print_db_table($result);
 }
 
 
@@ -116,42 +99,13 @@ if (isset($_GET['last'])) {
 	echo "Last {$limit} postings:\n";
 	$result = DB::get_last_postings($limit);
 	// print_r($response);
-	?>
-	<table id="postings" class="db">
-	<?php
-	foreach ($result as $i => &$row) {
-		if ($i === 0) {
-			echo "<thead><tr>";
-			foreach ($row as $key => &$val) echo "<th>$key</th>";
-			echo "</tr></thead>\n";
-		}
-		echo "<tr>";
-		foreach ($row as $key => &$val) {
-			if ($key == 'data') {
-				$data = @json_decode($val);
-				$val = $data? json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK) : $val;
-			}
-			echo "<td class='t-$key'>$val</td>";
-		}
-		echo "</tr>\n";
-	}
-	?>
-	</table>
-	<script language="javascript">
-	var $=jQuery;
-	$(document).ready(() => {
-		$('#postings tbody td.t-data').on('click', function() {
-			$(this).toggleClass('pre');
-		}).addClass('pointer');
-	});
-	</script>
-	<?php
+	print_db_table($result);
 }
 
 
 $test_mode = isset($_GET['test']);
 
-// OZON (test)
+// ===== OZON (test) ===========================================================
 if (isset($_GET['ozt'])) {
 	echo "\n<b>OZON (test):</b>\n";
 	$headers = [
@@ -213,7 +167,7 @@ if (isset($_GET['ozt'])) {
 }
 
 
-// OZON
+// ===== OZON ==================================================================
 if (isset($_GET['ozon'])) {
 	echo "\n<b>OZON:</b>\n";
 	$headers = [
@@ -296,27 +250,7 @@ if (isset($_GET['ozon'])) {
 }
 
 
-// WILDBERRIES DATA list
-if (isset($_GET['wbl'])) {
-	echo "\n<b>WB DATA list:</b>\n";
-	$headers = [
-		'Authorization: ' . WB_API_KEY
-	];
-	// $datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString('1 month') );
-	// $datetime_to = new DateTime('now');
-	// $url = 'https://marketplace-api.wildberries.ru/api/v3/orders/new';
-	// $url = 'https://marketplace-api.wildberries.ru/api/v3/orders?limit=100&next=0&dateFrom='.$datetime_from->getTimestamp().'&dateTo='.$datetime_to->getTimestamp();
-	$url = 'https://marketplace-api.wildberries.ru/api/v3/orders?limit=100&next=0';
-	echo "GET {$url}\n";
-	$response = CURL::get($url, $headers);
-	echo "\n</pre><pre>";
-	print_r_tree($response);
-	echo "\n</pre><pre>";
-	print_r($response);
-}
-
-
-// WILDBERRIES
+// ===== WILDBERRIES ===========================================================
 if (isset($_GET['wb'])) {
 	echo "\n<b>WB:</b>\n";
 	$headers = [
@@ -325,7 +259,6 @@ if (isset($_GET['wb'])) {
 	if ($test_mode) {
 		require 'test_wb.php';
 	} else {
-		// $url = 'https://suppliers-api.wildberries.ru/api/v3/orders/new'; - deprecated
 		$url = 'https://marketplace-api.wildberries.ru/api/v3/orders/new';
 		echo "GET {$url}\n";
 		$response = CURL::get($url, $headers);
@@ -382,12 +315,8 @@ if (isset($_GET['wb'])) {
 					if ($count == 0 || $test_mode) {
 						// notify about new posting
 						// calc price
-						if (!empty($order['salePrice'])) {
-							$price = round( intval($order['salePrice']) / 100 );
-						}
-						if (empty($price)) {
-							$price = round( intval($order['price']) / 100 );
-						}
+						// $price = round( intval($order['salePrice']) / 100 );
+						$price = round( intval($order['price']) / 100 );
 						// prepare notice
 						$text = "<b>WILDBERRIES</b>\nНовый заказ: <code>{$order_id}</code>";
 						// $text .= "\n<i>{$order['orderUid']} {$order['article']} {$price} ₽</i>";
@@ -457,11 +386,171 @@ if (isset($_GET['wb'])) {
 	if (!$test_mode && !DEV_MODE) $tbot->log('check', 'WB');
 }
 
+
+// ===== WILDBERRIES Orders list =====
+if (isset($_GET['wbl'])) {
+	echo "\n<b>WB Orders list:</b>\n";
+	$headers = [
+		'Authorization: ' . WB_API_KEY,
+		'Content-Type: application/json'
+	];
+	// $datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString('1 month') );
+	// $datetime_to = new DateTime('now');
+	// $time_filter = '&dateFrom='.$datetime_from->getTimestamp().'&dateTo='.$datetime_to->getTimestamp();
+	$url = 'https://marketplace-api.wildberries.ru/api/v3/orders?limit=100&next=0'; //.$time_filter;
+	echo "GET {$url}\n";
+	$response = CURL::get($url, $headers);
+	if (isset($response['orders'])) {
+		echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+		print_r_tree2($response);
+		echo "\n</pre><pre>";
+		// get statuses
+		$ids = [];
+		$orders = [];
+		foreach ($response['orders'] as &$order) {
+			$ids[] = $order['id'];
+			// $orders[$order['id']] = ['order' => $order];
+		}
+		$body = json_encode(['orders' => $ids]);
+		// $body = '{"orders": [3154889391]}';
+		$url = 'https://marketplace-api.wildberries.ru/api/v3/orders/status';
+		echo "POST {$url}\n{$body}\n";
+		$statuses = CURL::post($url, $headers, $body);
+		if (isset($statuses['orders'])) {
+			foreach ($statuses['orders'] as &$order) {
+				$orders[$order['id']] = ['supplierStatus' => $order['supplierStatus'], 'wbStatus' => $order['wbStatus']];
+			}
+			foreach ($response['orders'] as &$order) {
+				$orders[$order['id']]['article'] = $order['article'];
+				$orders[$order['id']]['order'] = $order;
+			}
+			echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+			print_r_tree2($orders);
+			echo "\n</pre><pre>";
+		} else {
+			echo "\n<b>ERROR</b>\n";
+			print_r($statuses);
+		}
+	} else {
+		echo "\n<b>ERROR</b>\n";
+		print_r($response);
+	}
+}
+
+// ===== WILDBERRIES Prices list =====
+/*
+Бот каждые 10 минут запрашивает список товаров по адресу:
+https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter?limit=1000
+Далее вычисляет размер скидки для каждого размера товара, исходя из цены и цены со скидкой.
+Если обнаруживает превышение максимальной скидки (15%), то отправляет сообщение
+в телеграм и запрос на изменение скидки на нормальную (11%) по адресу:
+https://discounts-prices-api.wildberries.ru/api/v2/upload/task
+*/
+if (!defined('MAX_DISCOUNT')) define('MAX_DISCOUNT', 15);
+if (!defined('NORM_DISCOUNT')) define('NORM_DISCOUNT', 11);
+
+if (isset($_GET['wbdis'])) {
+	echo "\n<b>WB Set discount:</b>\n";
+	$headers = [
+		'Authorization: ' . WB_API_KEY,
+		'Content-Type: application/json'
+	];
+	$body = json_encode(['data' => [['nmID' => 306652549, 'discount' => 16]]]); // бр_взр_скр_бел
+	$url = 'https://discounts-prices-api.wildberries.ru/api/v2/upload/task';
+	echo "POST {$url}\n{$body}\n";
+	$response = CURL::post($url, $headers, $body);
+	echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+	print_r_tree2($response);
+}
+
+if (isset($_GET['wbp'])) {
+	echo "\n<b>WB Prices list:</b>\n";
+	$headers = [
+		'Authorization: ' . WB_API_KEY,
+		'Content-Type: application/json'
+	];
+	$url = 'https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter?limit=1000';
+	echo "GET {$url}\n";
+	$response = CURL::get($url, $headers);
+	echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+	print_r_tree2($response);
+	?>
+	</pre>
+	<table>
+	<tr><th>vendorCode</th><th>techSizeName</th><th>price</th><th>discountedPrice</th><th>%</th><th>clubDiscountedPrice</th><th>%</th></tr>
+	<?php
+	$alerts = [];
+	$alert_off = false; // something updated back to off
+	foreach ($response['data']['listGoods'] as &$item) {
+		foreach ($item['sizes'] as &$size) {
+			$discount = 100 - round($size['discountedPrice']/$size['price']*100);
+			$clubDiscount = 100 - round($size['clubDiscountedPrice']/$size['price']*100);
+			if ($discount > MAX_DISCOUNT || $clubDiscount > MAX_DISCOUNT) {
+				// add to list for alert
+				$size['nmID'] = $item['nmID'];
+				$size['discount'] = max($discount, $clubDiscount);
+				$size['discountedPrice'] = min($size['discountedPrice'], $size['clubDiscountedPrice']);
+				$alerts[$item['vendorCode']] = $size;
+			} else {
+				if ($result = DB::upsert_activity($tbot->bot_id, 'alert', $item['vendorCode'], 'off')) {
+					$alert_off = true;
+				} elseif ($result === false) {
+					break; // break on error
+				}
+			}
+			echo "<tr>";
+			echo "<td>{$item['vendorCode']}</td>";
+			echo "<td>{$size['techSizeName']}</td>";
+			echo "<td>{$size['price']}</td>";
+			echo "<td>{$size['discountedPrice']}</td>";
+			echo "<td style='".($discount > MAX_DISCOUNT? 'color:red' : '')."'>{$discount}%</td>";
+			echo "<td>{$size['clubDiscountedPrice']}</td>";
+			echo "<td style='".($clubDiscount > MAX_DISCOUNT? 'color:red' : '')."'>{$clubDiscount}%</td>";
+			echo "</tr>\n";
+		}
+		if (DB::last_error()) break; // break on error
+	}
+	?>
+	</table>
+	<pre>
+	<?php
+	if (count($alerts)) {
+		// prepare and send notification if something changed and prepare request list
+		$msg = '';
+		$uplist = [];
+		foreach ($alerts as $vendorCode => &$size) {
+			if ($result = DB::upsert_activity($tbot->bot_id, 'alert', $vendorCode, 'on')) {
+				// add to notice
+				$msg .= "\n<code>{$vendorCode}</code> <b>{$size['discount']}%</b> (цена со скидкой <i>{$size['discountedPrice']}₽</i>)";
+				$uplist[] = ['nmID' => $size['nmID'], 'discount' => NORM_DISCOUNT];
+			} elseif ($result === false) {
+				break; // break on error
+			}
+		}
+		if (strlen($msg)) {
+			// send notification
+			$tbot->sendToMainChat("<b>WILDBERRIES</b>\n<b>Высокая скидка!!!</b>" . $msg, 'HTML');
+			// send update request if option is on
+			if (isset($_GET['wbdofix'])) {
+				$body = json_encode(['data' => $uplist]);
+				$url = 'https://discounts-prices-api.wildberries.ru/api/v2/upload/task';
+				echo "POST {$url}\n{$body}\n";
+				DB::log('wbdofix', 'POST discount fix', $tbot->bot_id, $uplist);
+				$response = CURL::post($url, $headers, $body);
+				DB::log('wbdofix', 'Fix result', $tbot->bot_id, $response);
+				echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+				print_r_tree2($response);
+			}
+		}
+	} elseif($alert_off) {
+		// notify about all is ok
+		$tbot->sendToMainChat("<b>WILDBERRIES</b>\nСкидки в пределах ".MAX_DISCOUNT."%.", 'HTML');
+	}
+}
+
+// ===== WILDBERRIES test =====
 if (isset($_GET['wbt'])) {
 	echo "\n<p><b>WB(test):</b></p>\n";
-	$headers = [
-		'Authorization: ' . WB_API_KEY
-	];
 	
 	require 'test_wb.php';
 	
@@ -490,8 +579,9 @@ if (isset($_GET['wbt'])) {
 	
 }
 
-if (isset($_GET['wbt2'])) {
-	echo "\n<p><b>WB(test2):</b></p>\n";
+// ===== WILDBERRIES testing cards list =====
+if (isset($_GET['wbtcl'])) {
+	echo "\n<p><b>WB testing cards list:</b></p>\n";
 	
 	$headers = [
 		'Authorization: ' . WB_API_KEY,
@@ -502,25 +592,25 @@ if (isset($_GET['wbt2'])) {
 	$url = 'https://content-api.wildberries.ru/content/v2/get/cards/list';
 	// curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
 	$body = '{ "settings": { "sort": { "ascending": false }, "cursor": { "limit": 100 }, "filter": { "withPhoto": -1 } } }';
-	
+	echo "\nPOST {$url}\n{$body}\n";
 	$response = CURL::post($url, $headers, $body);
-	echo "\n<p><b>{$url}:</b></p>\n";
-	print_r($response);
+	echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+	print_r_tree2($response);
 	
 	// trash
 	$url = 'https://content-api.wildberries.ru/content/v2/get/cards/trash';
 	$body = '{ "settings": { "sort": { "ascending": false }, "cursor": { "limit": 100 }, "filter": { "withPhoto": -1 } } }';
-	
+	echo "\nPOST {$url}\n{$body}\n";
 	$response = CURL::post($url, $headers, $body);
-	echo "\n<p><b>{$url}:</b></p>\n";
-	print_r($response);
+	echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+	print_r_tree2($response);
 	
 	// error/list
 	$url = 'https://content-api.wildberries.ru/content/v2/cards/error/list';
-	
+	echo "\nGET {$url}\n";
 	$response = CURL::get($url, $headers);
-	echo "\n<p><b>{$url}:</b></p>\n";
-	print_r($response);
+	echo "\n</pre><pre class=print-r-tree style='--line-limit: 80vw;'>";
+	print_r_tree2($response);
 	
 	// DB::log('test', 'WB//cards/list', 0, $response);
 	DB::log('test', 'WB//cards/list', 0);
@@ -530,25 +620,97 @@ if (isset($_GET['wbt2'])) {
 echo "\nFin";
 
 
+function print_db_table($rows)
+{
+	?>
+	<table class="db">
+	<?php
+	foreach ($rows as $i => &$row) {
+		if ($i === 0) {
+			echo "<thead><tr>";
+			foreach ($row as $key => &$val) echo "<th>$key</th>";
+			echo "</tr></thead>\n";
+		}
+		echo "<tr>";
+		foreach ($row as $key => &$val) {
+			if ($key == 'data') {
+				$data = @json_decode($val);
+				$val = $data? json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK) : $val;
+			}
+			echo "<td class='t-$key'>$val</td>";
+		}
+		echo "</tr>\n";
+	}
+	?>
+	</table>
+	<script language="javascript">
+	var $=jQuery;
+	$(document).ready(() => {
+		$('table.db tbody td.t-data').off('click').on('click', function() {
+			$(this).toggleClass('pre');
+		}).addClass('pointer');
+	});
+	</script>
+	<?php
+}
+
+
 function print_r_tree($data)
 {
 	// capture the output of print_r
 	$out = print_r($data, true);
 
 	// replace ')' on its own on a new line (surrounded by whitespace is ok) with '</div>
-	// $out = preg_replace('/^\s*\)\s*$/m', '</div>', $out);
-	$out = str_replace(')', ')</div>', $out);
+	$out = preg_replace('/^\s*\)\s*$/m', '</div>', $out);
 
 	// replace something like '[element] => <newline> (' with <a href="javascript:toggleDisplay('...');">...</a><div id="..." style="display: none;">
 	$out = preg_replace_callback(
 		'/([ \t]*)(\[[^\]]+\][ \t]*\=\>[ \t]*[a-z0-9 \t_]+)\n([ \t]*\()/iU',
 		function ($matches) {
 			$id = substr(md5(rand().$matches[0]), 0, 7);
-			return "{$matches[1]}<a href=\"javascript:toggleDisplay('{$id}');\">{$matches[2]}</a><div id=\"{$id}\" style=\"display: none;\">{$matches[3]}";
+			return "{$matches[1]}<a href=\"javascript:toggleDisplay('{$id}');\">{$matches[2]}</a><div id=\"{$id}\" style=\"display: none;\">";
 		},
 		$out
 	);
 
 	// print the javascript function toggleDisplay() and then the transformed output
 	echo '<script language="Javascript">function toggleDisplay(id) { document.getElementById(id).style.display = (document.getElementById(id).style.display == "block") ? "none" : "block"; }</script>'."\n$out";
+}
+
+function print_r_tree2($data)
+{
+	// capture the output of print_r
+	$out = print_r($data, true);
+
+	// adding </span></span> after ')'
+	// $out = str_replace(")\n", ")\n</span></span>", $out);
+	$out = preg_replace('/^(\s*)\)\s*$/m', '\1)</span></span>', $out);
+
+	// insert into something like '[element] => <newline> (' the <span class=a-box> actions and one more <span>
+	$out = preg_replace_callback(
+		'/([ \t]*)(\[[^\]]+\][ \t]*\=\>[ \t]*[a-z0-9 \t_]+)\n([ \t]*)\(/iU',
+		function ($matches) {
+			return "{$matches[1]}{$matches[2]}<span class=a-box><b class=toggle-a></b><b class=open-all></b><b class=close-all></b>\n<span>{$matches[3]}(";
+		},
+		$out
+	);
+
+	// print the transformed output
+	echo $out;
+	?>
+	<script language="javascript">
+	(function($) {
+		if (window.print_r_tree_click_handler == undefined) {
+			window.print_r_tree_click_handler = function() { $(this).parent().toggleClass('open'); }
+			window.print_r_tree_clickp_handler = function() { $(this).parent().find('.a-box').addClass('open'); }
+			window.print_r_tree_clickm_handler = function() { $(this).parent().find('.a-box').removeClass('open'); }
+			$(document).ready(() => {
+				$('.print-r-tree .toggle-a').off('click').on('click', window.print_r_tree_click_handler).addClass('pointer');
+				$('.print-r-tree .open-all').off('click').on('click', window.print_r_tree_clickp_handler).addClass('pointer');
+				$('.print-r-tree .close-all').off('click').on('click', window.print_r_tree_clickm_handler).addClass('pointer');
+			});
+		}
+	})(jQuery);
+	</script>
+	<?php
 }
