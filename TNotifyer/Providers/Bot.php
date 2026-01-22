@@ -9,7 +9,6 @@ namespace TNotifyer\Providers;
 use TNotifyer\Database\DB;
 use TNotifyer\Engine\Storage;
 use TNotifyer\Providers\Log;
-use TNotifyer\Providers\CURL;
 
 /**
  * 
@@ -200,7 +199,7 @@ class Bot extends TelegramBot {
 			$url = $website['url'];
 
 			// get site status
-			$active = CURL::pingUrl($url);
+			$active = Storage::get('CURL')->pingUrl($url);
 
 			// compare the status with stored
 			if ($website['active'] != $active) {

@@ -9,7 +9,6 @@ namespace TNotifyer\Providers;
 use TNotifyer\Engine\Storage;
 use TNotifyer\Database\DB;
 use TNotifyer\Providers\Log;
-use TNotifyer\Providers\CURL;
 use TNotifyer\Exceptions\ExternalRequestException;
 use \DateTimeInterface;
 use \DateTime;
@@ -70,7 +69,7 @@ class OZONProvider {
 		];
 		
 		Log::debug("POST {$url}\n<i>{$postfields}</i>\n");
-		$data = CURL::post($url, $headers, $postfields);
+		$data = Storage::get('CURL')->post($url, $headers, $postfields);
 		
 		return $data;
 	}

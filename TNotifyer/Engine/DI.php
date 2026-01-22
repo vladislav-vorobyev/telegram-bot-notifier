@@ -7,8 +7,10 @@
 namespace TNotifyer\Engine;
 
 use TNotifyer\Database\DB;
+use TNotifyer\Database\DBMySQLi;
 use TNotifyer\Exceptions\InternalException;
 use TNotifyer\Providers\Bot;
+use TNotifyer\Providers\CURL;
 use TNotifyer\Providers\Crypto;
 use TNotifyer\Providers\OZONProvider;
 
@@ -31,6 +33,7 @@ class DI {
         Storage::set('Router', new Router());
         Storage::set('App', new App());
 
+        Storage::set('DBSimple', new DBMySQLi());
         if (!DB::init())
             throw new InternalException(DB::last_error_message());
 
@@ -47,6 +50,9 @@ class DI {
     static public function load($obj_name)
     {
         switch($obj_name) {
+
+            case 'CURL':
+                return Storage::set('CURL', new CURL());
 
             case 'Crypto':
                 return Storage::set('Crypto', new Crypto(App::env('CRYPTO_KEY'), App::env('CRYPTO_SALT')));

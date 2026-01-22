@@ -9,7 +9,6 @@ namespace TNotifyer\Providers;
 use TNotifyer\Database\DB;
 use TNotifyer\Engine\Storage;
 use TNotifyer\Providers\Log;
-use TNotifyer\Providers\CURL;
 use TNotifyer\Exceptions\InternalException;
 
 /**
@@ -176,7 +175,7 @@ class TelegramBot {
 			Log::put('tbot-send', $action, $postfields);
 
 		// do request
-		$response = CURL::post(
+		$response = Storage::get('CURL')->post(
 			$this->api_path . $action,
 			['Content-Type: application/json'],
 			is_null($postfields)? '' : json_encode($postfields)
