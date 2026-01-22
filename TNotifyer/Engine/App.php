@@ -17,14 +17,9 @@ class App {
      * Application variables
      */
     const VARIABLES = [
-        'version' => '1.1.2',
+        'version' => '1.1.3',
         'name' => 'Telegram Notifyer',
     ];
-
-    /**
-     * @var Router
-     */
-    protected $router;
 
     /**
      * 
@@ -33,8 +28,6 @@ class App {
      */
     public function __construct()
     {
-        // Get this application router object
-        $this->router = Storage::get('Router');
     }
 
     /**
@@ -44,8 +37,8 @@ class App {
      */
     public function run()
     {
-        // Determine current request
-        $current_request = $this->router->getCurrent();
+        // Get this application router and determine current request
+        $current_request = Storage::get('Router')->getCurrent();
 
         // Execute the request controller method
         $controller = new $current_request->controller;
@@ -60,12 +53,13 @@ class App {
      * Get application variable value.
      * 
      * @param string variable name
+     * @param mixed default value
      * 
      * @return string value
      */
-    public static function var($name)
+    public static function var($name, $default = '')
     {
-        return self::VARIABLES[$name];
+        return self::VARIABLES[$name] ?? $default;
     }
 
     /**

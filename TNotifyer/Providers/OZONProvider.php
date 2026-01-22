@@ -150,13 +150,13 @@ class OZONProvider {
 		// verify response
 		$r_postings = &$data['result']['postings'];
 		if (empty($data)) {
-			$this->$last_error_message = 'OZON empty response or JSON error';
-			Log::put('error', $this->$last_error_message);
-			throw new ExternalRequestException($this->$last_error_message);
+			$this->last_error_message = 'OZON empty response or JSON error';
+			Log::put('error', $this->last_error_message);
+			throw new ExternalRequestException($this->last_error_message);
 		} elseif (!isset($r_postings)) {
-			$this->$last_error_message = 'OZON wrong response';
-			Log::put('error', $this->$last_error_message, $data);
-			throw new ExternalRequestException($this->$last_error_message);
+			$this->last_error_message = 'OZON wrong response';
+			Log::put('error', $this->last_error_message, $data);
+			throw new ExternalRequestException($this->last_error_message);
 		}
 
 		// loop over postings
@@ -197,7 +197,7 @@ class OZONProvider {
 		$count = ($result = DB::fetch_row($sql))? $result[0] : 0;
 
 		// if new posting or in test mode then send notification
-		if ($count == 0 || $test_mode) {
+		if ($count == 0 || Storage::get('App')->var('test-mode', false)) {
 			if (in_array($r_status, ['cancelled', 'delivering', 'delivered'])) {
 				Log::debug("<b>(!) Status is not for notify: {$r_status}</b>");
 			} else {
@@ -244,7 +244,7 @@ class OZONProvider {
 		}
 
 		// send message
-		return Storage::get('Bot')->sendToMainChat($text, 'HTML');
+		return Storage::get('Bot')->sendToMainChats($text, 'HTML');
 	}
 
 	/**
@@ -266,6 +266,6 @@ class OZONProvider {
 	 * @return string error message
 	 */
 	public function lastErrorMessage() {
-		return $this->$last_error_message;
+		return $this->last_error_message;
 	}
 }

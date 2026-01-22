@@ -36,8 +36,6 @@ class DI {
         Storage::set('DBSimple', new DBMySQLi());
         if (!DB::init())
             throw new InternalException(DB::last_error_message());
-
-        Storage::set('Bot', new Bot(App::env('BOT_INTERNAL_ID'), App::env('BOT_HOST_ID'), App::env('BOT_TOKEN'), App::env('ADMIN_CHAT_ID')));
     }
     
     /**
@@ -50,6 +48,9 @@ class DI {
     static public function load($obj_name)
     {
         switch($obj_name) {
+
+            case 'Bot':
+                return Storage::set('Bot', new Bot(App::env('BOT_INTERNAL_ID'), App::env('BOT_HOST_ID'), App::env('BOT_TOKEN'), App::env('ADMIN_CHAT_ID')));
 
             case 'CURL':
                 return Storage::set('CURL', new CURL());

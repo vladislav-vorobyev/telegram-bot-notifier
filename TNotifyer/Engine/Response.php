@@ -106,7 +106,7 @@ class Response {
      */
     public function table($rows, $keys = null, $json_keys = ['data']) {
         // check input
-        if (!is_array($rows) || !is_array($rows[0]))
+        if (!is_array($rows) || empty($rows[0]) || !is_array($rows[0]))
             throw new InternalException('Wrong rows to show as table');
 
         // setup keys to all as default

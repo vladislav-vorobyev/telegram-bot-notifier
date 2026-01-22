@@ -91,6 +91,11 @@ class Bot extends TelegramBot {
 						$this->sendToMainChats('<b>Тестовое</b> <i>сообщение</i>', 'HTML');
 						break;
 
+					case '/info':
+						$data = Storage::get('App')->info();
+						$this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');
+						break;
+
 					case '/ozon':
 						$data = Storage::get('OZON')->getInfo();
 						$this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');

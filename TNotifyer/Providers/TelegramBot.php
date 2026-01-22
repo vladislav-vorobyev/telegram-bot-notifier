@@ -90,13 +90,14 @@ class TelegramBot {
 		$this->admin_chat_id = $admin_chat_id;
 
 		// split token into id and key
-		list($this->api_id, $this->api_key) = explode(':', $api_token, 2);
-		if (empty($this->api_id) || empty($this->api_key))
+		$parsed_token = explode(':', $api_token, 2);
+		if (empty($parsed_token[1]))
 			throw new InternalException('Wrong Telegram Bot token structure!');
+		list($this->api_id, $this->api_key) = $parsed_token;
 
 		// prepare API request uri and secret_token
 		$this->api_path = self::TELEGRAM_API_URL . $api_token . '/';
-		$this->api_secret_token = substr($this->api_key, 20);
+		$this->api_secret_token = substr($this->api_key, 0, 20);
 
 		// testing the token and get bot info (no log this action)
 		$resp = $this->send('getMe', null, false);
@@ -146,6 +147,15 @@ class TelegramBot {
 	 */
 	public function getAdminChatId() {
 		return $this->admin_chat_id;
+	}
+	
+	/**
+	 * Main chats ids getter
+	 * 
+	 * @return array chats ids
+	 */
+	public function getMainChatsIds() {
+		return $this->main_chats_ids;
 	}
 	
 	/**
@@ -334,7 +344,7 @@ class TelegramBot {
 	 * 
 	 * Remove a webhook from Telegram bot
 	 * 
-	 * @return bool status
+	 * @return mixed response from API
 	 */
 	public function removeWebhook() {
 		// make request to Telegram bot
