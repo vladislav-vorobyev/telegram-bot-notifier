@@ -1,0 +1,29 @@
+# Set an environment variables
+<IfModule mod_env.c>
+SetEnv SITE_URI /v1/
+SetEnv ROOT_URI /v1/
+SetEnv BOT_INTERNAL_ID 1
+SetEnv BOT_HOST_ID 1
+SetEnv BOT_TOKEN 1234567890:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+SetEnv ADMIN_CHAT_ID 123456789
+SetEnv CRYPTO_KEY AAAAAAAAAAAAAAAAAAAA
+SetEnv CRYPTO_SALT AAAAAAAAAAAAAAAA
+</IfModule>
+
+# Перенаправить все в index.php
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /v1/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^index\.php$ - [L]
+RewriteRule . %{ENV:ROOT_URI}index.php [L]
+</IfModule>
+
+<IfModule mod_php7.c>
+php_value error_reporting 2047
+php_flag log_errors On
+php_flag display_errors Off
+php_flag display_startup_errors Off
+</IfModule>

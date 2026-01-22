@@ -398,3 +398,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Composer generated files
+composer.lock
+vendor/
+
+# server specific
+.htaccess

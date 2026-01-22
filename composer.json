@@ -1,0 +1,15 @@
+{
+  "autoload": {
+    "psr-4": {
+      "TNotifyer\\": "TNotifyer"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "TNotifyer\\": "tests"
+    }
+  }
+}
