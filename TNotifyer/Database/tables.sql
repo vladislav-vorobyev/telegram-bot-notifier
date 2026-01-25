@@ -9,7 +9,7 @@
 --
 
 CREATE TABLE `a_log` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `type` varchar(10) NOT NULL,
   `bot_id` int DEFAULT NULL,
@@ -23,15 +23,12 @@ ALTER TABLE `a_log`
   ADD KEY `type` (`type`),
   ADD KEY `bot_id` (`bot_id`);
 
-ALTER TABLE `a_log`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=182057;
-
 --
 -- Структура таблицы `a_websites`
 --
 
 CREATE TABLE `a_websites` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `url` varchar(250) NOT NULL,
   `active` tinyint(1) NOT NULL
@@ -40,9 +37,6 @@ CREATE TABLE `a_websites` (
 ALTER TABLE `a_websites`
   ADD PRIMARY KEY (`id`),
   ADD KEY `updated` (`updated`);
-
-ALTER TABLE `a_websites`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Структура таблицы `bot_chats`
@@ -80,7 +74,7 @@ ALTER TABLE `bot_options`
 --
 
 CREATE TABLE `bot_updates` (
-  `bot_id` int NOT NULL,
+  `bot_id` int NOT NULL AUTO_INCREMENT,
   `update_id` int NOT NULL,
   `cmd` varchar(30) DEFAULT NULL,
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -92,15 +86,12 @@ ALTER TABLE `bot_updates`
   ADD KEY `created` (`created`),
   ADD KEY `cmd` (`cmd`);
 
-ALTER TABLE `bot_options`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
 --
 -- Структура таблицы `postings`
 --
 
 CREATE TABLE `postings` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `bot_id` int NOT NULL,
   `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
@@ -115,6 +106,3 @@ ALTER TABLE `postings`
   ADD KEY `created` (`created`),
   ADD KEY `type` (`type`),
   ADD KEY `bot_id` (`bot_id`);
-
-ALTER TABLE `postings`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9791;
