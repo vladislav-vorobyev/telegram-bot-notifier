@@ -1,4 +1,6 @@
 {
+  "type": "project",
+  "description": "Telegram Notifyer",
   "autoload": {
     "psr-4": {
       "TNotifyer\\": "TNotifyer"
@@ -11,5 +13,10 @@
     "psr-4": {
       "TNotifyer\\": "tests"
     }
+  },
+  "scripts": {
+    "test" : [
+      "./vendor/bin/phpunit tests"
+    ]
   }
 }
