@@ -196,7 +196,7 @@ class Response {
             <meta name="viewport" content="width=device-width,initial-scale=1" />
             <title>T-bot</title>
             <link rel="stylesheet" type="text/css" href="<?=$site_uri?>style.css?v=<?=$version?>" />
-            <script src="/js/jquery-3.2.1.min.js"></script>
+            <script src="<?=$site_uri?>js/jquery-3.2.1.min.js"></script>
             <script src="<?=$site_uri?>js/tools.js?v=<?=$version?>"></script>
         </head>
         <body>
