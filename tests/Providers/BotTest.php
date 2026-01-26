@@ -9,6 +9,8 @@ use TNotifyer\Providers\FakeCURL;
 
 class BotTest extends TestCase
 {
+    const ARG_ANY_VALUE = '*';
+
     const OK_RESPONSE = [
         'ok' => 1,
         'result' => []
@@ -47,7 +49,7 @@ class BotTest extends TestCase
         Storage::set('CURL', new FakeCURL($response));
         $bot = new Bot(0, 0, $token, '00');
     }
-    
+
     public function wrongTokenDataProvider()
     {
         return [
@@ -141,12 +143,51 @@ class BotTest extends TestCase
             Storage::get('DBSimple')->last_args
         );
     }
-    
+
     public function memberUpdateDataProvider()
     {
         return [
             'join' => ['member', 'INSERT INTO bot_chats', [0, 11, 'main', 'test']],
             'left' => ['left', 'DELETE FROM bot_chats', [0, 11]],
+        ];
+    }
+
+    /**
+     * @depends testCreation
+     * @dataProvider botCommandsDataProvider
+     */
+    public function testBotCommands($text, $sql, $args)
+    {
+        Storage::get('DBSimple')->rows = [];
+        $update = [
+            'update_id' => 1,
+            'message' => [
+                'text' => $text,
+                'chat' => [
+                    'id' => 11
+                ]
+            ]
+        ];
+        Storage::get('Bot')->checkUpdate($update);
+        $this->assertEquals(
+            $sql,
+            substr( Storage::get('DBSimple')->last_sql, 0, strlen($sql) )
+        );
+        $last_args = Storage::get('DBSimple')->last_args;
+        foreach ($args as $k => $arg)
+            if ($arg === self::ARG_ANY_VALUE) $last_args[$k] = self::ARG_ANY_VALUE;
+        $this->assertEquals($args, $last_args);
+    }
+
+    public function botCommandsDataProvider()
+    {
+        return [
+            ['/test', 'INSERT INTO a_log', [0, 'tbot-send', 'sendMessage', self::ARG_ANY_VALUE]],
+            ['/info', 'SELECT * FROM bot_options', [0, 'chat_11_status']],
+            ['/ozon', 'SELECT * FROM bot_options', [0, Bot::ON_OZON_API_KEY]],
+            ['/ozon id', 'SELECT * FROM bot_options', [0, Bot::ON_OZON_CLI_ID]],
+            ['/ozon set id', 'INSERT INTO bot_options', [0, 'chat_11_status', '/ozon set id']],
+            ['/ozon set key', 'INSERT INTO bot_options', [0, 'chat_11_status', '/ozon set key']],
         ];
     }
 

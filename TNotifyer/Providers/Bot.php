@@ -73,75 +73,75 @@ class Bot extends TelegramBot {
 
 		if (empty($update)) return;
 
+		$commands = [
+
+			'/test' => function($bot) {
+				$bot->sendToMainChats('<b>Тестовое</b> <i>сообщение</i>', 'HTML');
+			},
+
+			'/info' => function($bot) {
+				$data = Storage::get('App')->info();
+				$bot->sendToAlarmChat('<code>' . Bot::convertToJson($data) . '</code>', 'HTML');
+			},
+
+			'/ozon' => function($bot) {
+				$data = Storage::get('OZON')->getInfo();
+				$bot->sendToAlarmChat('<code>' . Bot::convertToJson($data) . '</code>', 'HTML');
+			},
+
+			'/ozon id' => function($bot) {
+				$data = $bot->getOption(Bot::ON_OZON_CLI_ID);
+				$bot->sendToAlarmChat('<code>' . $data . '</code>', 'HTML');
+			},
+
+			'/ozon set id' => [
+				'Передайте пожалуйста OZON CLIENT ID или /cancel для отмены команды.',
+				function($bot, $text) {
+					$bot->changeOptionAct(Bot::ON_OZON_CLI_ID, $text, 'OZON CLIENT ID обновлен.');
+				}
+			],
+			
+			'/ozon set key' => [
+				'Передайте пожалуйста OZON API KEY или /cancel для отмены команды.',
+				function($bot, $text) {
+					$text = Storage::get('Crypto')->encrypt($text);
+					$bot->changeOptionAct(Bot::ON_OZON_API_KEY, $text, 'OZON API KEY обновлен.');
+				}
+			],
+		];
+
 		// inspecting message update
 		$message = $update['message'] ?? $update['edited_message'] ?? [];
+		$r_text = &$message['text'];
 		$r_chat_id = &$message['chat']['id'];
-		if (!empty($message['text']) && !empty($r_chat_id)) {
+		if (!empty($r_text) && !empty($r_chat_id)) {
 
 			// get bot status on this chat
 			$status_option_name = "chat_{$r_chat_id}_status";
 			$chat_status = $this->getOption($status_option_name);
 
 			if (empty($chat_status)) {
-				// no specific status
-				// check the message text
-				switch ($message['text']) {
-
-					case '/test':
-						$this->sendToMainChats('<b>Тестовое</b> <i>сообщение</i>', 'HTML');
-						break;
-
-					case '/info':
-						$data = Storage::get('App')->info();
-						$this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');
-						break;
-
-					case '/ozon':
-						$data = Storage::get('OZON')->getInfo();
-						$this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');
-						break;
-
-					case '/ozon id':
-						$data = $this->getOption(self::ON_OZON_CLI_ID);
-						$this->sendToAlarmChat('<code>' . $data . '</code>', 'HTML');
-						break;
-
-					case '/ozon set id':
-						$this->changeOptionAct(
-							$status_option_name,
-							'ozon-set-id',
-							'Передайте пожалуйста новый OZON CLIENT ID или /cancel для отмены команды.'
-						);
-						break;
-
-					case '/ozon set key':
-						$this->changeOptionAct(
-							$status_option_name,
-							'ozon-set-key',
-							'Передайте пожалуйста новый OZON API KEY или /cancel для отмены команды.'
-						);
-						break;
+				// no specific status then try to find a command
+				$r_command = &$commands[$r_text];
+				if (!empty($r_command)) {
+					if (is_callable($r_command)) {
+						$r_command($this);
+					} elseif (is_array($r_command)) {
+						// two steps command
+						$this->changeOptionAct($status_option_name, $r_text, $r_command[0]);
+					}
 				}
 
-			} elseif($message['text'] == '/cancel') {
-				// bot status is not standard and we got the cancel command
+			} elseif ($r_text == '/cancel') {
+				// bot status is not empty and we got the cancel command
 				$this->changeOptionAct($status_option_name, '', 'Отмена команды');
 
 			} else {
-				// determine by bot status
-				switch ($chat_status) {
-
-					case 'ozon-set-id':
-						$value = $message['text'];
-						$this->changeOptionAct(self::ON_OZON_CLI_ID, $value, 'OZON CLIENT ID обновлен.');
-						break;
-
-					case 'ozon-set-key':
-						$value = Storage::get('Crypto')->encrypt($message['text']);
-						$this->changeOptionAct(self::ON_OZON_API_KEY, $value, 'OZON API KEY обновлен.');
-						break;
+				// determine a command by bot status (two steps command)
+				$r_command = &$commands[$chat_status][1];
+				if (!empty($r_command) && is_callable($r_command)) {
+					$r_command($this, $r_text);
 				}
-
 				// clear the status
 				$this->changeOptionAct($status_option_name, '');
 			}
