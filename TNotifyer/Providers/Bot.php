@@ -123,7 +123,7 @@ class Bot extends TelegramBot {
 			if (empty($chat_status)) {
 				// no specific status then try to find a command
 				$r_command = &$commands[$r_text];
-				if (!empty($r_command)) {
+				if (!empty($r_command) && $this->checkCommandAccess($r_chat_id)) {
 					if (is_callable($r_command)) {
 						$r_command($this);
 					} elseif (is_array($r_command)) {
@@ -139,13 +139,27 @@ class Bot extends TelegramBot {
 			} else {
 				// determine a command by bot status (two steps command)
 				$r_command = &$commands[$chat_status][1];
-				if (!empty($r_command) && is_callable($r_command)) {
+				if (!empty($r_command) && is_callable($r_command) && $this->checkCommandAccess($r_chat_id)) {
 					$r_command($this, $r_text);
 				}
 				// clear the status
 				$this->changeOptionAct($status_option_name, '');
 			}
 		}
+	}
+	
+	/**
+	 * 
+	 * Check an access from the chat to bot commands
+	 * 
+	 * @param string chat id
+	 */
+	public function checkCommandAccess($r_chat_id) {
+		if ($r_chat_id != $this->admin_chat_id) {
+			Log::put('warning', "Access forbidden from the chat {$r_chat_id}");
+			return false;
+		}
+		return true;
 	}
 	
 	/**
@@ -210,8 +224,8 @@ class Bot extends TelegramBot {
 			if ($website['active'] != $active) {
 				// send a message about status change to alarm chat
 				$url_str = str_replace('https://', '', $url);
-				$msg = "[{$this->bot_host_id}] <code>{$url_str}</code> is <b>" . ($active? 'UP' : 'DOWN') . "</b>";
-				$this->sendMessage($this->alarm_chat_id, $msg, 'HTML', false);
+				$msg = "[{$this->getHostId()}] <code>{$url_str}</code> is <b>" . ($active? 'UP' : 'DOWN') . "</b>";
+				$this->sendMessage($this->getAdminChatId(), $msg, 'HTML', false);
 				
 				// update stored data
 				$sql = 'UPDATE a_websites SET active=' . ($active? 1 : 0) . ', updated=NOW() WHERE id=' . $website['id'];

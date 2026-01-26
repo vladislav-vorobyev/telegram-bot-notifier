@@ -50,6 +50,19 @@ class FakeDBSimple {
 
 
 	/**
+	 * Reset rows and history
+	 * 
+	 * @param array new rows
+	 */
+	public function reset($new_rows = []) {
+		$this->rows = $new_rows;
+		$this->sql_history = [];
+		$this->args_history = [];
+		unset($this->last_sql);
+		unset($this->last_args);
+	}
+
+	/**
 	 * Report about request error
 	 * 
 	 * @param mixed error message (get error from mysql by default)
