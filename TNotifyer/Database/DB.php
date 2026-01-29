@@ -6,6 +6,7 @@
  */
 namespace TNotifyer\Database;
 
+use TNotifyer\Engine\Storage;
 use TNotifyer\Providers\Log;
 
 /**
@@ -101,30 +102,92 @@ class DB extends DBSimple {
 
 
 	/**
-	 * Get last from postings table
+	 * Get rows from a table
+	 * 
+	 * @param string table name
+	 * @param mixed structure with next params:
+	 * {
+	 *   @param int 'limit' limit to get (optional)
+	 *   @param string 'orderby' order by (optional)
+	 *   @param mixed 'where' where cases like ['column', $value] (optional)
+	 * }
 	 */
-	public static function get_last_postings($limit) {
-		$sql = 'SELECT * FROM postings ORDER BY id DESC LIMIT ?';
+	public static function get_rows($table_name, $params) {
+		$bind = '';
+		$args = [];
+
+		// prepare where sql part
+		$where = [];
+		if (!empty($params['where'])) {
+			foreach ($params['where'] as $case) {
+				$where[] = $case[0] . '=?';
+				$args[] = $case[1];
+				$bind .= is_string($case[1])? 's' : 'i';
+			}
+		}
+		$where = implode(' AND ', $where);
+		if (!empty($where)) $where = ' WHERE ' . $where;
+
+		// prepare order by sql part
+		$orderby = '';
+		if (!empty($params['orderby'])) {
+			$orderby = ' ORDER BY ' . $params['orderby'];
+		}
+
+		// prepare limit sql part
+		$limit = '';
+		if (!empty($params['limit'])) {
+			$limit = ' LIMIT ?';
+			$bind .= 'i';
+			$args[] = $params['limit'];
+		}
+
+		// prepare sql
+		$sql = "SELECT * FROM {$table_name}{$where}{$orderby}{$limit}";
+		
 		// execute
-		return self::result_by_sql($sql, 'i', $limit);
+		return self::result_by_sql($sql, $bind, ...$args);
+	}
+
+	/**
+	 * Get last from postings table
+	 * 
+	 * @param int limit to get
+	 * @param int bot id (optional, -1 = use Bot from Storage)
+	 */
+	public static function get_last_postings($limit, $bot_id = null) {
+		$where = [];
+		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
+		// execute
+		return self::get_rows('postings', ['limit' => $limit, 'orderby' => 'id DESC', 'where' => $where]);
 	}
 
 	/**
 	 * Get last from a_log table
+	 * 
+	 * @param int limit to get
+	 * @param int bot id (optional, -1 = use Bot from Storage)
+	 * @param string type (optional)
 	 */
-	public static function get_last_log($limit) {
-		$sql = 'SELECT * FROM a_log ORDER BY id DESC LIMIT ?';
+	public static function get_last_log($limit, $bot_id = null, $type = null) {
+		$where = [];
+		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
+		if (!is_null($type)) $where[] = ['type', $type];
 		// execute
-		return self::result_by_sql($sql, 'i', $limit);
+		return self::get_rows('a_log', ['limit' => $limit, 'orderby' => 'id DESC', 'where' => $where]);
 	}
 
 	/**
 	 * Get last from bot_updates table
+	 * 
+	 * @param int limit to get
+	 * @param int bot id (optional, -1 = use Bot from Storage)
 	 */
-	public static function get_last_updates($limit) {
-		$sql = 'SELECT * FROM bot_updates ORDER BY created DESC, update_id DESC LIMIT ?';
+	public static function get_last_updates($limit, $bot_id = null) {
+		$where = [];
+		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
 		// execute
-		return self::result_by_sql($sql, 'i', $limit);
+		return self::get_rows('bot_updates', ['limit' => $limit, 'orderby' => 'created DESC, update_id DESC', 'where' => $where]);
 	}
 
 
