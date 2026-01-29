@@ -1,16 +1,14 @@
 <?php
 namespace TNotifyer\Providers;
 
-use PHPUnit\Framework\TestCase;
+use TNotifyer\Framework\LocalTestCase;
 use TNotifyer\Engine\Storage;
 use TNotifyer\Engine\FakeRequest;
 use TNotifyer\Database\FakeDBSimple;
 use TNotifyer\Providers\FakeCURL;
 
-class BotTest extends TestCase
+class BotTest extends LocalTestCase
 {
-    const ARG_ANY_VALUE = '***';
-
     const OK_RESPONSE = [
         'ok' => 1,
         'result' => []
@@ -26,7 +24,7 @@ class BotTest extends TestCase
      */
     public static function setUpBeforeClass(): void
     {
-        Storage::set('DBSimple', new FakeDBSimple());
+        // Storage::set('DBSimple', new FakeDBSimple());
     }
 
     public function testCreation()
@@ -193,26 +191,15 @@ class BotTest extends TestCase
             ]
         ];
         Storage::get('Bot')->checkUpdate($update);
-        $db = Storage::get('DBSimple');
-        $last_index = count($db->sql_history) - 1;
-        // compare each history step with stored history starting from last
-        foreach ($db_history as $i => $step) {
-            list($sql, $args) = $step;
-            // take sql and args from db history step by step backward
-            $db_sql = $db->sql_history[$last_index - $i];
-            $db_args = $db->args_history[$last_index - $i];
-            $this->assertEquals($sql, substr( $db_sql, 0, strlen($sql) ));
-            foreach ($args as $k => $arg)
-                if ($arg === self::ARG_ANY_VALUE) $db_args[$k] = self::ARG_ANY_VALUE;
-            $this->assertEquals($args, $db_args);
-        }
+
+        $this->assertDBHistory($db_history);
     }
 
     public function botCommandsDataProvider()
     {
         return [
             ['/test', [], [
-                ['INSERT INTO a_log', [0, 'tbot-send', 'sendMessage', self::ARG_ANY_VALUE]]
+                ['INSERT INTO a_log', [0, 'tbot-send', 'sendMessage', self::ANY_VALUE]]
             ]],
             ['/info', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
@@ -237,7 +224,7 @@ class BotTest extends TestCase
             ['123', [['value'=>'/ozon set key']], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
-                ['INSERT INTO bot_options', [0, Bot::ON_OZON_API_KEY, self::ARG_ANY_VALUE]],
+                ['INSERT INTO bot_options', [0, Bot::ON_OZON_API_KEY, self::ANY_VALUE]],
             ]],
             ['/cancel', [['value'=>'/ozon set key']], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
