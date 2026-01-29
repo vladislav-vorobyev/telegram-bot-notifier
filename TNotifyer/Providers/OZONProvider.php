@@ -139,11 +139,68 @@ class OZONProvider {
 	}
 
 	/**
+	 * Requesting a list of cancelled postings
+	 * 
+	 * @param DateTime requesting period from datetime
+	 * @param DateTime requesting period to datetime
+	 * 
+	 * @return mixed response (OZON API)
+	 */
+	public function getCancelledFBSList($datetime_from, $datetime_to) {
+		$url = self::API_URL . '/v3/posting/fbs/list';
+		$postfields = json_encode([
+			'dir' => 'ASC',
+			'limit' => 100,
+			'offset' => 0,
+			'filter' => [
+				'status' => 'cancelled',
+				'since' => $datetime_from->format(DateTimeInterface::RFC3339),
+				'to' => $datetime_to->format(DateTimeInterface::RFC3339)
+			]
+		]);
+		return $this->post($url, $postfields);
+	}
+
+	/**
+	 * Get posting
+	 * 
+	 * @param string posting_number
+	 * 
+	 * @return mixed response (OZON API)
+	 */
+	public function getPosting($posting_number) {
+		$url = self::API_URL . '/v3/posting/fbs/get';
+		$postfields = json_encode([
+			'posting_number' => $posting_number,
+		]);
+		return $this->post($url, $postfields);
+	}
+
+	/**
+	 * Determine a time from last check
+	 * 
+	 * @return int time (in seconds if < 24 hours)
+	 */
+	public function getLastCheckTime() {
+		// $last_check = DB::get_last_log(1, -1, 'check');
+		$tbot_id = Storage::get('Bot')->getId();
+		$sql = "SELECT TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created FROM a_log"
+			. " WHERE bot_id={$tbot_id} AND type='check' AND message='OZON' ORDER by id DESC LIMIT 1";
+		$last_check = DB::fetch_row($sql);
+		// Log::put('debug', 'getLastCheckTime', ['last_check'=>$last_check]);
+		return empty($last_check)? null : intval($last_check[0] ?? 0);
+	}
+
+	/**
 	 * Check new postings
 	 */
 	public function doCheck() {
-		// get postings in last 6 hours
-		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString('6 hours') ); // sub 6 hours
+		// determine a time from last check
+		$time = $this->getLastCheckTime();
+		$delta = (!empty($time) && ($time < 23*60*60))? ($time + 300) . ' seconds' : '24 hours';
+
+		// get postings after last check but not far then 24 hours
+		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString($delta) );
 		$datetime_to = new DateTime('now');
 		$data = $this->getFBSList($datetime_from, $datetime_to);
 
@@ -255,6 +312,32 @@ class OZONProvider {
 	 * @return mixed API response
 	 */
 	public function makeFBSListTest($period = '7 days') { 
+		$datetime_to = new DateTime('now');
+		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString($period) );
+		return $this->getFBSList($datetime_from, $datetime_to);
+	}
+
+	/**
+	 * Make cancelled status fbs list test
+	 * 
+	 * @param string period to take
+	 * 
+	 * @return mixed API response
+	 */
+	public function makeCancelledFBSListTest($period = '7 days') { 
+		$datetime_to = new DateTime('now');
+		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString($period) );
+		return $this->getCancelledFBSList($datetime_from, $datetime_to);
+	}
+
+	/**
+	 * Make unfulfilled fbs list test
+	 * 
+	 * @param string period to take
+	 * 
+	 * @return mixed API response
+	 */
+	public function makeUnfulfilledFBSListTest($period = '7 days') { 
 		$datetime_to = new DateTime('now');
 		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString($period) );
 		return $this->getFBSUnfulfilledList($datetime_from, $datetime_to);

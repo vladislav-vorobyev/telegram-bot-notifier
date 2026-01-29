@@ -3,6 +3,7 @@ namespace TNotifyer\Providers;
 
 use TNotifyer\Framework\LocalTestCase;
 use TNotifyer\Engine\Storage;
+use TNotifyer\Engine\DI;
 use TNotifyer\Engine\FakeRequest;
 use TNotifyer\Database\FakeDBSimple;
 use TNotifyer\Providers\FakeCURL;
@@ -24,7 +25,7 @@ class BotTest extends LocalTestCase
      */
     public static function setUpBeforeClass(): void
     {
-        // Storage::set('DBSimple', new FakeDBSimple());
+        Storage::set('DBSimple', new FakeDBSimple());
     }
 
     public function testCreation()
@@ -157,15 +158,9 @@ class BotTest extends LocalTestCase
             'result' => [$update]
         ]));
         Storage::get('Bot')->checkUpdates();
-        // $this->assertEquals([], Storage::get('DBSimple')->sql_history);
-        $this->assertEquals(
-            $sql,
-            substr( Storage::get('DBSimple')->last_sql, 0, strlen($sql) )
-        );
-        $this->assertEquals(
-            $args,
-            Storage::get('DBSimple')->last_args
-        );
+
+        // $this->outputDBHistory();
+        $this->assertDBHistory([[$sql, $args]]);
     }
 
     public function memberUpdateDataProvider()
@@ -176,8 +171,15 @@ class BotTest extends LocalTestCase
         ];
     }
 
+    public function testOzonLoad()
+    {
+        Storage::get('DBSimple')->reset();
+        $this->assertNotEmpty(DI::load('OZON'));
+    }
+
     /**
      * @depends testCreation
+     * @depends testOzonLoad
      * @dataProvider botCommandsDataProvider
      */
     public function testBotCommands($text, $db_rows, $db_history)
@@ -192,6 +194,7 @@ class BotTest extends LocalTestCase
         ];
         Storage::get('Bot')->checkUpdate($update);
 
+        // $this->outputDBHistory();
         $this->assertDBHistory($db_history);
     }
 
@@ -205,7 +208,7 @@ class BotTest extends LocalTestCase
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
             ]],
             ['/ozon', [], [
-                ['SELECT * FROM bot_options', [0, Bot::ON_OZON_API_KEY]]
+                ['SELECT * FROM bot_options', [0, 'chat_00_status']],
             ]],
             ['/ozon id', [], [
                 ['SELECT * FROM bot_options', [0, Bot::ON_OZON_CLI_ID]]
@@ -248,12 +251,11 @@ class BotTest extends LocalTestCase
             ]
         ];
         Storage::get('Bot')->checkUpdate($update);
-        $sql = 'INSERT INTO a_log';
-        $this->assertEquals($sql, substr( Storage::get('DBSimple')->last_sql, 0, strlen($sql) ));
-        $this->assertEquals(
-            [0, 'warning', 'Access forbidden from the chat 11'],
-            Storage::get('DBSimple')->last_args
-        );
+
+        // $this->outputDBHistory();
+        $this->assertDBHistory([[
+            'INSERT INTO a_log', [0, 'warning', 'Access forbidden from the chat 11']
+        ]]);
     }
 
     /**

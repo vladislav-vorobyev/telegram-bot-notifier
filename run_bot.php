@@ -36,7 +36,10 @@ try {
         ['GET', '/bot-info', ['BotController', 'botInfo']],
         ['GET', '/ozon', ['OZONController', 'doCheck']],
         ['GET', '/ozon-info', ['OZONController', 'info']],
-        ['GET', '/ozon-test', ['OZONController', 'doTest']],
+        ['GET', '/ozon-get', ['OZONController', 'getPosting']],
+        ['GET', '/ozon-test', ['OZONController', 'makeFBSListTest']],
+        ['GET', '/ozon-c-test', ['OZONController', 'makeCancelledFBSListTest']],
+        ['GET', '/ozon-un-test', ['OZONController', 'makeUnfulfilledFBSListTest']],
         ['GET', '/crypto-test', ['SystemController', 'testCrypto']],
     ]);
 

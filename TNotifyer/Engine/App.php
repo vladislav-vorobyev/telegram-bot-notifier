@@ -17,7 +17,7 @@ class App {
      * Application variables
      */
     const VARIABLES = [
-        'version' => '1.1.5',
+        'version' => '1.2.0',
         'name' => 'Telegram Notifyer',
     ];
 

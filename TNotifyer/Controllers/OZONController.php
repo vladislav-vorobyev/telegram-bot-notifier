@@ -44,16 +44,58 @@ class OZONController extends AbstractWebController {
     }
 
     /**
-     * Do test handler.
+     * Get FBS list test handler.
      * 
      * @return Response current response
      */
-    public function doTest()
+    public function makeFBSListTest()
     {
         // get request optional parameter
         $period = $this->request->getParam('period', '7 days');
 
         // response
         return $this->response->print(Storage::get('OZON')->makeFBSListTest($period));
+    }
+
+    /**
+     * Get cancelled status FBS list test handler.
+     * 
+     * @return Response current response
+     */
+    public function makeCancelledFBSListTest()
+    {
+        // get request optional parameter
+        $period = $this->request->getParam('period', '7 days');
+
+        // response
+        return $this->response->print(Storage::get('OZON')->makeCancelledFBSListTest($period));
+    }
+
+    /**
+     * Get Unfulfilled FBS list test handler.
+     * 
+     * @return Response current response
+     */
+    public function makeUnfulfilledFBSListTest()
+    {
+        // get request optional parameter
+        $period = $this->request->getParam('period', '7 days');
+
+        // response
+        return $this->response->print(Storage::get('OZON')->makeUnfulfilledFBSListTest($period));
+    }
+
+    /**
+     * Get posting handler.
+     * 
+     * @return Response current response
+     */
+    public function getPosting()
+    {
+        // get request parameter
+        $posting_number = $this->request->getParam('num');
+
+        // response
+        return $this->response->print(Storage::get('OZON')->getPosting($posting_number));
     }
 }

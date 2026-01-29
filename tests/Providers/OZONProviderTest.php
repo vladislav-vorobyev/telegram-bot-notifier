@@ -1,13 +1,13 @@
 <?php
 namespace TNotifyer\Providers;
 
-use PHPUnit\Framework\TestCase;
+use TNotifyer\Framework\LocalTestCase;
 use TNotifyer\Engine\Storage;
 use TNotifyer\Engine\FakeRequest;
 use TNotifyer\Database\FakeDBSimple;
 use TNotifyer\Providers\FakeCURL;
 
-class OZONProviderTest extends TestCase
+class OZONProviderTest extends LocalTestCase
 {
     const POSTING_EXAMPLE = [
         "status" => "awaiting_packaging",
@@ -35,42 +35,82 @@ class OZONProviderTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         Storage::set('DBSimple', new FakeDBSimple());
-        Storage::set('Bot', new FakeBot());
+        Storage::set('Bot', new FakeBot(0));
     }
 
-    public function testCheckPosting() {
-        $ozon = new OZONProvider('00','AA');
-        $result = $ozon->checkPosting(self::POSTING_EXAMPLE);
+    public function testCreation()
+    {
+        Storage::get('DBSimple')->reset();
+        Storage::set('OZON', new OZONProvider('00','AA'));
+        $this->assertEmpty(Storage::get('OZON')->lastErrorMessage());
+    }
+
+    /**
+     * @depends testCreation
+     */
+    public function testCheckPosting()
+    {
+        Storage::get('DBSimple')->reset();
+        $result = Storage::get('OZON')->checkPosting(self::POSTING_EXAMPLE);
+
         $this->assertEquals(true, $result);
         $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
-        $this->assertEquals(
-            [0, 'ozon', "36615787-0025-1", "awaiting_packaging", json_encode(self::POSTING_EXAMPLE)],
-            Storage::get('DBSimple')->last_args
-        );
+        $this->assertDBHistory([[
+            'INSERT IGNORE INTO postings',
+            [0, 'ozon', "36615787-0025-1", "awaiting_packaging", json_encode(self::POSTING_EXAMPLE)]
+        ]]);
     }
 
-    public function testDoCheck() {
+    /**
+     * @depends testCreation
+     * @dataProvider checkTimeDataProvider
+     */
+    public function testGetLastCheckTime($rows, $value)
+    {
+        Storage::get('DBSimple')->reset($rows);
+        $this->assertEquals($value, Storage::get('OZON')->getLastCheckTime());
+    }
+    
+    public function checkTimeDataProvider()
+    {
+        return [
+            '115 seconds' => [ [['115']], 115 ],
+            'no value' => [ [['']], 0 ],
+            'empty' => [ [], null ]
+        ];
+    }
+
+    /**
+     * @depends testCreation
+     */
+    public function testDoCheck()
+    {
+        Storage::get('DBSimple')->reset();
         Storage::set('CURL', new FakeCURL([
             'result' => [
                 'postings' => [self::POSTING_EXAMPLE],
             ],
         ]));
-        $ozon = new OZONProvider('00','AA');
+        $ozon = Storage::get('OZON');
         $ozon->doCheck();
+
         $this->assertEmpty($ozon->lastErrorMessage());
         $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
-        $this->assertEquals([0, 'check', 'OZON'], Storage::get('DBSimple')->last_args);
+        // $this->outputDBHistory();
+        $this->assertDBHistory([[
+            'INSERT INTO a_log', [0, 'check', 'OZON']
+        ]]);
     }
 
     /**
+     * @depends testCreation
      * @dataProvider wrongCheckDataProvider
      */
     public function testWrongDoCheck($data)
     {
         $this->expectException('TNotifyer\Exceptions\ExternalRequestException');
         Storage::set('CURL', new FakeCURL($data));
-        $ozon = new OZONProvider('00','AA');
-        $ozon->doCheck();
+        Storage::get('OZON')->doCheck();
     }
     
     public function wrongCheckDataProvider()

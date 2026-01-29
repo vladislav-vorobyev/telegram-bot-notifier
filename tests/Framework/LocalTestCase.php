@@ -21,6 +21,26 @@ class LocalTestCase extends TestCase
     }
 
     /**
+     * Print variable value into output.
+     * 
+     * @param mixed variable
+     */
+    public static function outputVar($var)
+    {
+        fwrite(STDERR, print_r($var, true));
+    }
+
+    /**
+     * Print db history variables into output.
+     */
+    public static function outputDBHistory()
+    {
+        $db = Storage::get('DBSimple');
+        self::outputVar($db->sql_history);
+        self::outputVar($db->args_history);
+    }
+
+    /**
      * 
      * Compare each history step with stored DB history starting from last
      * 
