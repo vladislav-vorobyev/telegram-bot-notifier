@@ -110,6 +110,7 @@ class DB extends DBSimple {
 	 *   @param int 'limit' limit to get (optional)
 	 *   @param string 'orderby' order by (optional)
 	 *   @param mixed 'where' where cases like ['column', $value] (optional)
+	 *   @param string columns to select (optional, * by default)
 	 * }
 	 */
 	public static function get_rows($table_name, $params) {
@@ -142,8 +143,11 @@ class DB extends DBSimple {
 			$args[] = $params['limit'];
 		}
 
+		// prepare columns to select
+		$columns = empty($params['columns'])? '*' : $params['columns'];
+
 		// prepare sql
-		$sql = "SELECT * FROM {$table_name}{$where}{$orderby}{$limit}";
+		$sql = "SELECT {$columns} FROM {$table_name}{$where}{$orderby}{$limit}";
 		
 		// execute
 		return self::result_by_sql($sql, $bind, ...$args);
@@ -188,6 +192,31 @@ class DB extends DBSimple {
 		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
 		// execute
 		return self::get_rows('bot_updates', ['limit' => $limit, 'orderby' => 'created DESC, update_id DESC', 'where' => $where]);
+	}
+
+
+	/**
+	 * Determine a time from last record of type
+	 * 
+	 * @param int bot id (optional, -1 = use Bot from Storage)
+	 * @param string type (optional)
+	 * @param string message (optional)
+	 * 
+	 * @return array ['sec', 'created'] time in seconds and created time
+	 */
+	public static function get_last_log_time($bot_id = null, $type = null, $message = null) {
+		$where = [];
+		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
+		if (!is_null($type)) $where[] = ['type', $type];
+		if (!is_null($message)) $where[] = ['message', $message];
+		// $sql = "SELECT TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created FROM a_log {$where} ORDER by id DESC LIMIT 1";
+		// execute
+		return self::get_rows('a_log', [
+			'columns' => 'TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created',
+			'where' => $where,
+			'orderby' => 'id DESC',
+			'limit' => 1,
+		]);
 	}
 
 

@@ -179,16 +179,12 @@ class OZONProvider {
 	/**
 	 * Determine a time from last check
 	 * 
-	 * @return int time (in seconds if < 24 hours)
+	 * @return int time in seconds
 	 */
 	public function getLastCheckTime() {
-		// $last_check = DB::get_last_log(1, -1, 'check');
-		$tbot_id = Storage::get('Bot')->getId();
-		$sql = "SELECT TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created FROM a_log"
-			. " WHERE bot_id={$tbot_id} AND type='check' AND message='OZON' ORDER by id DESC LIMIT 1";
-		$last_check = DB::fetch_row($sql);
-		// Log::put('debug', 'getLastCheckTime', ['last_check'=>$last_check]);
-		return empty($last_check)? null : intval($last_check[0] ?? 0);
+		$result = DB::get_last_log_time(-1, 'check', 'OZON');
+		$r_sec = &$result[0]['sec'];
+		return (!empty($r_sec))? intval($r_sec) : 0;
 	}
 
 	/**

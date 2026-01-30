@@ -68,19 +68,26 @@ class OZONProviderTest extends LocalTestCase
     public function testGetLastCheckTime($rows, $value)
     {
         Storage::get('DBSimple')->reset($rows);
-        $this->assertEquals($value, Storage::get('OZON')->getLastCheckTime());
+        $result = Storage::get('OZON')->getLastCheckTime();
+        
+        // $this->outputDBHistory();
+        $this->assertDBHistory([[
+            'SELECT TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created FROM a_log WHERE bot_id=? AND type=? AND message=? ORDER BY id DESC LIMIT ?',
+            [0, 'check', 'OZON', 1]
+        ]]);
+        $this->assertEquals($value, $result);
     }
     
     public function checkTimeDataProvider()
     {
         return [
-            '115 seconds' => [ [['115']], 115 ],
-            'no value' => [ [['']], 0 ],
-            'empty' => [ [], null ]
+            '115 seconds' => [ [['sec'=>'115']], 115 ],
+            'empty' => [ [], 0 ]
         ];
     }
 
     /**
+     * @depends testGetLastCheckTime
      * @depends testCreation
      */
     public function testDoCheck()
@@ -103,6 +110,7 @@ class OZONProviderTest extends LocalTestCase
     }
 
     /**
+     * @depends testGetLastCheckTime
      * @depends testCreation
      * @dataProvider wrongCheckDataProvider
      */
