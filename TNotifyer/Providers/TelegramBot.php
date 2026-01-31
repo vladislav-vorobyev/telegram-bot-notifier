@@ -431,7 +431,12 @@ class TelegramBot {
 	 * @return string encoded data
 	 */
 	public static function convertToJson($data) {
-		return mb_strimwidth(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK), 0, self::ALARM_CODE_LENGTH, "...");
+		return mb_strimwidth(
+			str_replace('    ', ' ',
+				json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT)
+			),
+			0, self::ALARM_CODE_LENGTH, '...'
+		);
 	}
 	
 	/**
