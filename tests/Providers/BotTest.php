@@ -171,6 +171,16 @@ class BotTest extends LocalTestCase
         ];
     }
 
+    public function testgetMainChatsInfo()
+    {
+        Storage::set('CURL', new FakeCURL([
+            'ok' => 1,
+            'result' => ['type' => 'group', 'title' => 'title']
+        ]));
+        $result = Storage::get('Bot')->getMainChatsInfo();
+        $this->assertEquals(['title (group)', 'title (group)'], $result);
+    }
+
     public function testOzonLoad()
     {
         Storage::get('DBSimple')->reset();
@@ -201,35 +211,42 @@ class BotTest extends LocalTestCase
     public function botCommandsDataProvider()
     {
         return [
+            ['/help', [], [
+                ['SELECT * FROM bot_options', [0, 'chat_00_status']]
+            ]],
             ['/test', [], [
                 ['INSERT INTO a_log', [0, 'tbot-send', 'sendMessage', self::ANY_VALUE]]
             ]],
             ['/info', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
             ]],
+            ['/mainchats', [], [
+                ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"22"}']],
+                ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"11"}']]
+            ]],
             ['/ozon', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
             ]],
-            ['/ozon id', [], [
+            ['/ozonid', [], [
                 ['SELECT * FROM bot_options', [0, Bot::ON_OZON_CLI_ID]]
             ]],
-            ['/ozon set id', [], [
-                ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozon set id']]
+            ['/ozonsetid', [], [
+                ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozonsetid']]
             ]],
-            ['123', [['value'=>'/ozon set id']], [
+            ['123', [['value'=>'/ozonsetid']], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
                 ['INSERT INTO bot_options', [0, Bot::ON_OZON_CLI_ID, '123']],
             ]],
-            ['/ozon set key', [], [
-                ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozon set key']]
+            ['/ozonsetkey', [], [
+                ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozonsetkey']]
             ]],
-            ['123', [['value'=>'/ozon set key']], [
+            ['123', [['value'=>'/ozonsetkey']], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
                 ['INSERT INTO bot_options', [0, Bot::ON_OZON_API_KEY, self::ANY_VALUE]],
             ]],
-            ['/cancel', [['value'=>'/ozon set key']], [
+            ['/cancel', [['value'=>'/ozonsetkey']], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],

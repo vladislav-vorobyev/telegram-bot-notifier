@@ -10,6 +10,7 @@ use TNotifyer\Database\DB;
 use TNotifyer\Engine\Storage;
 use TNotifyer\Providers\Log;
 use TNotifyer\Exceptions\InternalException;
+use TNotifyer\Exceptions\ExternalRequestException;
 
 /**
  * 
@@ -171,9 +172,9 @@ class TelegramBot {
 	
 	/**
 	 * 
-	 * Send an action to Telegram bot
+	 * Send a request to Telegram API
 	 * 
-	 * @param string bot action
+	 * @param string API method
 	 * @param mixed request data (optional)
 	 * @param bool store an action to log (true by default)
 	 * 
@@ -336,7 +337,7 @@ class TelegramBot {
 			'secret_token' => $this->api_secret_token
 		];
 
-		// make request to Telegram bot
+		// make request to Telegram API
 		return $this->send($action, $postfields);
 	}
 	
@@ -347,8 +348,42 @@ class TelegramBot {
 	 * @return mixed response from API
 	 */
 	public function removeWebhook() {
-		// make request to Telegram bot
+		// make request to Telegram API
 		return $this->send('deleteWebhook');
+	}
+	
+	/**
+	 * 
+	 * Get chat information from Telegram
+	 * 
+	 * @param string chat id
+	 * 
+	 * @return mixed response from API
+	 */
+	public function getChat($chat_id) {
+		// make request to Telegram API
+		return $this->send('getChat', ['chat_id' => $chat_id]);
+	}
+	
+	/**
+	 * 
+	 * Get chat title/name
+	 * 
+	 * @param string chat id
+	 * 
+	 * @return string title/name
+	 */
+	public function getChatTitle($chat_id) {
+		$res = $this->getChat($chat_id);
+		if (!self::isOK($res) || empty($res['result'])) {
+			Log::put('error', 'Wrong response from getChat', $res);
+			return '';
+		}
+		$chat = $res['result'] ?? [];
+		$type = $chat['type'] ?? '';
+		$title = $chat['title'] ?? $chat['username'] ?? '';
+		$name = trim(($chat['first_name'] ?? '') . ' ' . ($chat['last_name'] ?? ''));
+		return $title . (!empty($name)? " / $name" : '') . " ($type)";
 	}
 	
 	/**
@@ -372,7 +407,7 @@ class TelegramBot {
 		if (!empty($parse_mode))
 			$postfields['parse_mode'] = $parse_mode;
 
-		// make request to Telegram bot
+		// make request to Telegram API
 		$response = $this->send($action, $postfields, $do_log);
 		Log::debug(print_r($response, true));
 		

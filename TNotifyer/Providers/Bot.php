@@ -75,6 +75,18 @@ class Bot extends TelegramBot {
 
 		$commands = [
 
+			'/help' => function($bot) {
+				$help = ''
+					. '<b>/info</b> <i>- информация о приложении на хостинге</i>' . "\n"
+					. '<b>/mainchats</b> <i>- список привязанных чатов</i>' . "\n"
+					. '<b>/test</b> <i>- отправить тестовое сообщение в привязанные чаты</i>' . "\n"
+					. '<b>/ozon</b> <i>- информация об OZON аккаунте</i>' . "\n"
+					. '<b>/ozonid</b> <i>- отобразить установленный OZON CLIENT ID</i>' . "\n"
+					. '<b>/ozonsetid</b> <i>- установить OZON CLIENT ID</i>' . "\n"
+					. '<b>/ozonsetkey</b> <i>- установить OZON API KEY</i>';
+				$bot->sendToAlarmChat($help, 'HTML');
+			},
+
 			'/test' => function($bot) {
 				$bot->sendToMainChats('<b>Тестовое</b> <i>сообщение</i>', 'HTML');
 			},
@@ -84,24 +96,32 @@ class Bot extends TelegramBot {
 				$bot->sendToAlarmChat('<code>' . Bot::convertToJson($data) . '</code>', 'HTML');
 			},
 
+			'/mainchats' => function($bot) {
+				$data = array_reduce( $this->getMainChatsInfo(), function($a, $val) {
+					$a[0] .= (++$a[1]) . '. ' . $val . "\n";
+					return $a;
+				}, ['', 0]);
+				$bot->sendToAlarmChat($data[0]);
+			},
+
 			'/ozon' => function($bot) {
 				$data = Storage::get('OZON')->getInfo();
 				$bot->sendToAlarmChat('<code>' . Bot::convertToJson($data) . '</code>', 'HTML');
 			},
 
-			'/ozon id' => function($bot) {
+			'/ozonid' => function($bot) {
 				$data = $bot->getOption(Bot::ON_OZON_CLI_ID);
 				$bot->sendToAlarmChat('<code>' . $data . '</code>', 'HTML');
 			},
 
-			'/ozon set id' => [
+			'/ozonsetid' => [
 				'Передайте пожалуйста OZON CLIENT ID или /cancel для отмены команды.',
 				function($bot, $text) {
 					$bot->changeOptionAct(Bot::ON_OZON_CLI_ID, $text, 'OZON CLIENT ID обновлен.');
 				}
 			],
 			
-			'/ozon set key' => [
+			'/ozonsetkey' => [
 				'Передайте пожалуйста OZON API KEY или /cancel для отмены команды.',
 				function($bot, $text) {
 					$text = Storage::get('Crypto')->encrypt($text);
@@ -178,6 +198,15 @@ class Bot extends TelegramBot {
 		} else {
 			$this->sendToAlarmChat($fail_msg, 'HTML');
 		}
+	}
+	
+	/**
+	 * Get information about main chats
+	 * 
+	 * @return array list of chats info
+	 */
+	public function getMainChatsInfo() {
+		return array_map( function($chat_id){ return $this->getChatTitle($chat_id); }, $this->getMainChatsIds() );
 	}
 	
 	/**
