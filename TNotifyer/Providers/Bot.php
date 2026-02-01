@@ -88,7 +88,10 @@ class Bot extends TelegramBot {
 			},
 
 			'/test' => function($bot) {
-				$bot->sendToMainChats('<b>Тестовое</b> <i>сообщение</i>', 'HTML');
+				if ($mes_id = $bot->sendToMainChats('<b>Тестовое</b> <i>сообщение</i>', 'HTML'))
+					$bot->sendToMainChats(
+						'<b>Ответное</b> <i>сообщение</i>', 'HTML', true, array_map( function($val){ return ['reply_parameters' => ['message_id' => $val]]; }, $mes_id )
+					);
 			},
 
 			'/info' => function($bot) {

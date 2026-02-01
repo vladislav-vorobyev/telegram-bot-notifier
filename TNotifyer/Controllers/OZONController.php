@@ -36,8 +36,11 @@ class OZONController extends AbstractWebController {
      */
     public function doCheck()
     {
+        // get request optional parameter
+        $period = $this->request->getParam('period', '');
+
         // make an action
-        Storage::get('OZON')->doCheck();
+        Storage::get('OZON')->doCheck($period);
 
         // response
         return $this->response->text('Check done.');

@@ -86,11 +86,12 @@ class BotTest extends LocalTestCase
             ['X-Telegram-Bot-Api-Secret-Token' => 'AA']
         ));
         $result = Storage::get('Bot')->webhook();
+
         $this->assertEquals(true, $result);
-        $this->assertEquals(
-            [0, 1, 'message', json_encode(self::UPDATE_EXAMPLE)],
-            Storage::get('DBSimple')->last_args
-        );
+        // $this->outputDBHistory();
+        $this->assertDBHistory([
+            ['INSERT IGNORE INTO bot_updates', [0, 1, 'message', json_encode(self::UPDATE_EXAMPLE)]],
+        ]);
     }
 
     /**
@@ -114,12 +115,39 @@ class BotTest extends LocalTestCase
     {
         Storage::get('DBSimple')->reset();
         Storage::get('Bot')->setWebhook();
-        $sql = 'INSERT INTO a_log';
-        $this->assertEquals($sql, substr( Storage::get('DBSimple')->last_sql, 0, strlen($sql) ));
-        $this->assertEquals(
-            [0, 'tbot-send', 'setWebhook', '{"url":"webhook","secret_token":"AA"}'],
-            Storage::get('DBSimple')->last_args
-        );
+        
+        //$this->outputDBHistory();
+        $this->assertDBHistory([
+            ['INSERT INTO bot_log', [0, 'setWebhook', '{"url":"webhook","secret_token":"AA"}', '{"ok":1,"result":[]}']],
+            ['INSERT INTO a_log', [0, 'tbot-send', 'setWebhook', '{"url":"webhook","secret_token":"AA"}']],
+        ]);
+    }
+
+    /**
+     * @depends testCreation
+     * @dataProvider sendToMainChatsDataProvider
+     */
+    public function testsendToMainChats($curl, $result, $db_history)
+    {
+        Storage::get('DBSimple')->reset();
+        Storage::set('CURL', new FakeCURL($curl));
+        $_result = Storage::get('Bot')->sendToMainChats('Test msg');
+
+        $this->assertEquals($result, $_result);
+        // $this->outputDBHistory();
+        $this->assertDBHistory($db_history);
+    }
+
+    public function sendToMainChatsDataProvider()
+    {
+        return [
+            '123' => [['ok' => 1, 'result' => ['message_id' => '123']], ['11'=>123, '22'=>123], [
+                ['INSERT INTO bot_log', [0, 'sendMessage', '{"chat_id":"22","text":"Test msg"}', '{"ok":1,"result":{"message_id":"123"}}'],
+            ]]],
+            'no' => [[], [], [
+                ['INSERT INTO bot_log', [0, 'sendMessage', '{"chat_id":"22","text":"Test msg"}', '[]'],
+            ]]],
+        ];
     }
 
     /**
@@ -128,8 +156,12 @@ class BotTest extends LocalTestCase
     public function testAlarm()
     {
         Storage::get('DBSimple')->reset();
+        Storage::set('CURL', new FakeCURL([
+            'ok' => 1,
+            'result' => ['message_id' => '123']
+        ]));
         $status = Storage::get('Bot')->alarm('Test alarm', ['test'=>1]);
-        $this->assertEquals(true, $status);
+        $this->assertEquals(123, $status);
         $this->assertEquals(false, isset( Storage::get('DBSimple')->last_sql ));
     }
 
@@ -215,14 +247,17 @@ class BotTest extends LocalTestCase
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
             ]],
             ['/test', [], [
-                ['INSERT INTO a_log', [0, 'tbot-send', 'sendMessage', self::ANY_VALUE]]
+                ['INSERT INTO bot_log', [0, 'sendMessage', self::ANY_VALUE, self::ANY_VALUE]],
+                ['INSERT INTO a_log', [0, 'tbot-send', 'sendMessage', self::ANY_VALUE]],
             ]],
             ['/info', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
             ]],
             ['/mainchats', [], [
+                ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"22"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
                 ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"22"}']],
-                ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"11"}']]
+                ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"11"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
+                ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"11"}']],
             ]],
             ['/ozon', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],

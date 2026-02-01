@@ -99,8 +99,8 @@ class FakeBot {
 
 		// prepare API request uri and secret_token
 		$this->api_path = '/';
-		$this->api_secret_token = 'SS';
-		$this->main_chats_ids = [];
+		$this->api_secret_token = 'AA';
+		$this->main_chats_ids = ['11'];
 	}
 	
 	/**
@@ -234,7 +234,7 @@ class FakeBot {
 	 * @return bool status of the operation
 	 */
 	public function sendMessage($chat_id, $text, $parse_mode = '', $do_log = true) {
-		return true;
+		return 99;
 	}
 	
 	/**
@@ -244,7 +244,9 @@ class FakeBot {
 	 */
 	public function sendToMainChats($text, $parse_mode = '', $do_log = true) {
 		$this->last_main_msg = $text;
-		return true;
+		$ret = [];
+		foreach($this->main_chats_ids as $chat_id) $ret[$chat_id] = 99;
+		return $ret;
 	}
 	
 	/**
@@ -252,7 +254,7 @@ class FakeBot {
 	 */
 	public function sendToAlarmChat($message, $parse_mode = '') {
 		$this->last_alarm_msg = $message;
-		return true;
+		return $this->sendMessage('00', $message, $parse_mode, false);
 	}
 	
 	/**

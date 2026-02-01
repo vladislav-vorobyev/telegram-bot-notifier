@@ -22,6 +22,23 @@ class DB extends DBSimple {
 	
 
 	/**
+	 * Prepare JSON value to save in database
+	 * 
+	 * @param mixed data
+	 * 
+	 * @return string json string
+	 */
+	public static function _json($data) {
+		$json = json_encode($data);
+		// make a limit
+		if (strlen($json) > self::LOG_CODE_LENGTH) {
+			$json = json_encode( mb_strimwidth($json, 0, self::LOG_CODE_LENGTH - 10, '...') );
+		}
+		return $json;
+	}
+	
+
+	/**
 	 * Store to log table
 	 * 
 	 * @param int bot id
@@ -38,17 +55,27 @@ class DB extends DBSimple {
 			$sql = 'INSERT INTO a_log (bot_id, type, message) VALUES (?,?,?)';
 			return self::execute_sql($sql, 'iss', $bot_id, $type, $message);
 		} else {
-			$json = json_encode($data);
-			// make a limit
-			if (strlen($json) > self::LOG_CODE_LENGTH) {
-				$json = json_encode( mb_strimwidth($json, 0, self::LOG_CODE_LENGTH - 10, '...') );
-			}
 			// store
 			$sql = 'INSERT INTO a_log (bot_id, type, message, data) VALUES (?,?,?,?)';
-			return self::execute_sql($sql, 'isss', $bot_id, $type, $message, $json);
+			return self::execute_sql($sql, 'isss', $bot_id, $type, $message, self::_json($data));
 		}
 	}
 
+
+	/**
+	 * Store to bot_log table
+	 * 
+	 * @param int bot id
+	 * @param string action
+	 * @param mixed request
+	 * @param mixed response
+	 */
+	public static function insert_bot_log($bot_id, $action, $request, $response) {
+		if (!self::is_ready()) return; // return if not initialized
+		// store
+		$sql = 'INSERT INTO bot_log (bot_id, action, request, response) VALUES (?,?,?,?)';
+		return self::execute_sql($sql, 'isss', $bot_id, $action, self::_json($request), self::_json($response));
+	}
 
 	/**
 	 * Store to bot_updates table
@@ -81,6 +108,12 @@ class DB extends DBSimple {
 
 	/**
 	 * Store to postings table
+	 * 
+	 * @param int bot internal id
+	 * @param string type
+	 * @param string posting number
+	 * @param string status value
+	 * @param mixed posting data
 	 */
 	public static function insert_posting($bot_id, $type, $posting_number, $status, $posting) {
 		$json = json_encode($posting);
@@ -89,15 +122,35 @@ class DB extends DBSimple {
 		return self::execute_sql($sql, 'issss', $bot_id, $type, $posting_number, $status, $json);
 	}
 
-
 	/**
 	 * Store to activity table
+	 * 
+	 * @param int bot internal id
+	 * @param string type
+	 * @param string article
+	 * @param string status value
+	 * @param mixed data
 	 */
 	public static function insert_activity($bot_id, $type, $article, $status, $data) {
 		$json = json_encode($data);
 		$sql = 'INSERT INTO activity (bot_id, type, article, status, data) VALUES (?,?,?,?,?)';
 		// execute
 		return self::execute_sql($sql, 'issss', $bot_id, $type, $article, $status, $json);
+	}
+
+	/**
+	 * Store to posting status table
+	 * 
+	 * @param int bot internal id
+	 * @param string type
+	 * @param string posting number
+	 * @param string status value
+	 * @param mixed message_id (optional)
+	 */
+	public static function save_posting_status($bot_id, $type, $posting_number, $status, $message_id = []) {
+		$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, message_id) VALUES (?,?,?,?,?)'
+			. ' ON DUPLICATE KEY UPDATE `status`=?, `updated`=NOW()';
+		return self::execute_sql($sql, 'isssss', $bot_id, $type, $posting_number, $status, self::_json($message_id), $status);
 	}
 
 
@@ -109,7 +162,7 @@ class DB extends DBSimple {
 	 * {
 	 *   @param int 'limit' limit to get (optional)
 	 *   @param string 'orderby' order by (optional)
-	 *   @param mixed 'where' where cases like ['column', $value] (optional)
+	 *   @param mixed 'where' where cases like ['column', $value] | ['column', $value, $sign] (optional)
 	 *   @param string columns to select (optional, * by default)
 	 * }
 	 */
@@ -120,11 +173,12 @@ class DB extends DBSimple {
 		// prepare where sql part
 		$where = [];
 		if (!empty($params['where'])) {
-			foreach ($params['where'] as $case) {
-				$where[] = $case[0] . '=?';
-				$args[] = $case[1];
-				$bind .= is_string($case[1])? 's' : 'i';
-			}
+			foreach ($params['where'] as $case)
+				if (!is_null($case[1])) {
+					$where[] = $case[0] . (empty($case[2])? '=' : $case[2]) . '?';
+					$args[] = $case[1];
+					$bind .= is_string($case[1])? 's' : 'i';
+				}
 		}
 		$where = implode(' AND ', $where);
 		if (!empty($where)) $where = ' WHERE ' . $where;
@@ -157,41 +211,62 @@ class DB extends DBSimple {
 	 * Get last from postings table
 	 * 
 	 * @param int limit to get
-	 * @param int bot id (optional, -1 = use Bot from Storage)
+	 * @param int bot internal id (optional, -1 = use Bot from Storage)
+	 * @param string type (optional)
+	 * @param string posting number (optional)
+	 * @param string posting status (optional)
 	 */
-	public static function get_last_postings($limit, $bot_id = null) {
-		$where = [];
-		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
+	public static function get_last_postings($limit, $bot_id = null, $type = null, $posting_number = null, $status = null) {
+		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('postings', ['limit' => $limit, 'orderby' => 'id DESC', 'where' => $where]);
+		return self::get_rows('postings', [
+			'where' => [['bot_id', $bot_id], ['type', $type], ['posting_number', $posting_number], ['status', $status]], 'orderby' => 'id DESC', 'limit'=>$limit
+		]);
 	}
 
 	/**
 	 * Get last from a_log table
 	 * 
 	 * @param int limit to get
-	 * @param int bot id (optional, -1 = use Bot from Storage)
+	 * @param int bot internal id (optional, -1 = use Bot from Storage)
 	 * @param string type (optional)
 	 */
 	public static function get_last_log($limit, $bot_id = null, $type = null) {
-		$where = [];
-		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
-		if (!is_null($type)) $where[] = ['type', $type];
+		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('a_log', ['limit' => $limit, 'orderby' => 'id DESC', 'where' => $where]);
+		return self::get_rows('a_log', [
+			'where' => [['bot_id', $bot_id], ['type', $type]], 'orderby' => 'id DESC', 'limit'=>$limit
+		]);
 	}
 
 	/**
 	 * Get last from bot_updates table
 	 * 
 	 * @param int limit to get
-	 * @param int bot id (optional, -1 = use Bot from Storage)
+	 * @param int bot internal id (optional, -1 = use Bot from Storage)
 	 */
 	public static function get_last_updates($limit, $bot_id = null) {
-		$where = [];
-		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
+		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('bot_updates', ['limit' => $limit, 'orderby' => 'created DESC, update_id DESC', 'where' => $where]);
+		return self::get_rows('bot_updates', [
+			'where' => [['bot_id', $bot_id]], 'orderby' => 'created DESC, update_id DESC', 'limit'=>$limit
+		]);
+	}
+
+	/**
+	 * Get from posting status table
+	 * 
+	 * @param int limit to get
+	 * @param int bot internal id (optional, -1 = use Bot from Storage)
+	 * @param string type (optional)
+	 * @param string posting number (optional)
+	 */
+	public static function get_posting_status($limit, $bot_id = null, $type = null, $posting_number = null) {
+		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
+		// execute
+		return self::get_rows('posting_status', [
+			'where' => [['bot_id', $bot_id], ['type', $type], ['posting_number', $posting_number]], 'limit'=>$limit
+		]);
 	}
 
 
@@ -260,11 +335,10 @@ class DB extends DBSimple {
 	public static function save_bot_option($bot_id, $key, $value) {
 		// get id
 		$old = self::get_bot_option($bot_id, $key);
-		$r_id = &$old['id'];
-		if (!empty($r_id)) {
+		if (!empty($old['id'])) {
 			// update
 			$sql = 'UPDATE bot_options SET `value` = ? WHERE id = ?';
-			return self::execute_sql($sql, 'si', $value, $r_id);
+			return self::execute_sql($sql, 'si', $value, $old['id']);
 		} else {
 			// insert new
 			$sql = 'INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?,?,?)';

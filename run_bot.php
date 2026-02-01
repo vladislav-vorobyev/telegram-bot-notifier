@@ -26,6 +26,7 @@ try {
         ['GET', '/log', ['ViewController', 'log']],
         ['GET', '/last', ['ViewController', 'postings']],
         ['GET', '/updates', ['ViewController', 'updates']],
+        ['GET', '/statuses', ['ViewController', 'statuses']],
         ['POST', '/webhook', ['BotController', 'webhook']],
         ['GET', '/set-webhook', ['BotController', 'setWebhook']],
         ['GET', '/remove-webhook', ['BotController', 'removeWebhook']],

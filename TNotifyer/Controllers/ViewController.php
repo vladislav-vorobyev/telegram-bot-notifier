@@ -46,7 +46,7 @@ class ViewController extends AbstractWebController {
     public function log()
     {
         // get rows
-        $data = DB::get_last_log($this->request->getIntParam('limit', 5));
+        $data = DB::get_last_log($this->request->getIntParam('limit', 10), -1);
 
         // show all columns
         return $this->response->table($data);
@@ -62,10 +62,26 @@ class ViewController extends AbstractWebController {
     public function postings()
     {
         // get rows
-        $data = DB::get_last_postings($this->request->getIntParam('limit', 5));
+        $data = DB::get_last_postings($this->request->getIntParam('limit', 10), -1);
 
         // show all columns
         return $this->response->table($data);
+    }
+
+    /**
+     * Show last posting statuses.
+     * 
+     * Request param: limit to show
+     * 
+     * @return Response current response
+     */
+    public function statuses()
+    {
+        // get rows
+        $data = DB::get_posting_status($this->request->getIntParam('limit', 50), -1);
+
+        // show all columns
+        return $this->response->table($data, null, ['message_id']);
     }
 
     /**
@@ -78,7 +94,7 @@ class ViewController extends AbstractWebController {
     public function updates()
     {
         // get rows
-        $data = DB::get_last_updates($this->request->getIntParam('limit', 5));
+        $data = DB::get_last_updates($this->request->getIntParam('limit', 10), -1);
 
         // show all columns with 'value' as json value
         return $this->response->table($data, null, ['value']);

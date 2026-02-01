@@ -55,10 +55,11 @@ class OZONProviderTest extends LocalTestCase
 
         $this->assertEquals(true, $result);
         $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
-        $this->assertDBHistory([[
-            'INSERT IGNORE INTO postings',
-            [0, 'ozon', "36615787-0025-1", "awaiting_packaging", json_encode(self::POSTING_EXAMPLE)]
-        ]]);
+        // $this->outputDBHistory();
+        $this->assertDBHistory([
+            ['INSERT INTO posting_status', [0, 'ozon', "36615787-0025-1", "awaiting_packaging", '{"11":99}', "awaiting_packaging"]],
+            ['INSERT IGNORE INTO postings', [0, 'ozon', "36615787-0025-1", "awaiting_packaging", json_encode(self::POSTING_EXAMPLE)]],
+        ]);
     }
 
     /**
@@ -69,7 +70,7 @@ class OZONProviderTest extends LocalTestCase
     {
         Storage::get('DBSimple')->reset($rows);
         $result = Storage::get('OZON')->getLastCheckTime();
-        
+
         // $this->outputDBHistory();
         $this->assertDBHistory([[
             'SELECT TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created FROM a_log WHERE bot_id=? AND type=? AND message=? ORDER BY id DESC LIMIT ?',

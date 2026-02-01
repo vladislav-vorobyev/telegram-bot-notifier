@@ -167,7 +167,7 @@ class TelegramBot {
 	 * @return bool status
 	 */
 	public static function isOK($response) {
-		return (isset($response['ok']) && $response['ok'] == 1)? true : false;
+		return (isset($response['ok']) && $response['ok'] == 1 && isset($response['result']))? true : false;
 	}
 	
 	/**
@@ -194,11 +194,12 @@ class TelegramBot {
 
 		// check response
 		if ($do_log) {
-			if (!$response) {
+			if (empty($response)) {
 				Log::put('error', "Empty response on $action");
 			} elseif (!self::isOK($response)) {
 				Log::put('error', "No OK response on $action", $response);
 			}
+			DB::insert_bot_log($this->bot_id, $action, $postfields, $response);
 		}
 		
 		return $response;
@@ -394,10 +395,11 @@ class TelegramBot {
 	 * @param string message
 	 * @param string parse mode of the message (optional)
 	 * @param bool store an action to log (true by default)
+	 * @param array more postfields to send (optional)
 	 * 
-	 * @return bool status of the operation
+	 * @return mixed message id or false
 	 */
-	public function sendMessage($chat_id, $text, $parse_mode = '', $do_log = true) {
+	public function sendMessage($chat_id, $text, $parse_mode = '', $do_log = true, $more_fields = null) {
 		// Telegram API action and request data
 		$action = 'sendMessage';
 		$postfields = [
@@ -406,12 +408,14 @@ class TelegramBot {
 		];
 		if (!empty($parse_mode))
 			$postfields['parse_mode'] = $parse_mode;
+		if (!empty($more_fields))
+			$postfields = array_merge($postfields, $more_fields);
 
 		// make request to Telegram API
 		$response = $this->send($action, $postfields, $do_log);
 		Log::debug(print_r($response, true));
 		
-		return self::isOK($response);
+		return self::isOK($response)? intval($response['result']['message_id'] ?? 0) : false;
 	}
 	
 	/**
@@ -420,13 +424,16 @@ class TelegramBot {
 	 * @param string message
 	 * @param string parse mode of the message (optional)
 	 * @param bool store an action to log (true by default)
+	 * @param array more postfields to send (optional)
 	 * 
-	 * @return bool status of the operation
+	 * @return array of message id
 	 */
-	public function sendToMainChats($text, $parse_mode = '', $do_log = true) {
-		$result = true;
-		foreach ($this->main_chats_ids as $chat_id) {
-			$result = $result && $this->sendMessage($chat_id, $text, $parse_mode, $do_log);
+	public function sendToMainChats($text, $parse_mode = '', $do_log = true, $more_fields = []) {
+		$result = [];
+		foreach ($this->main_chats_ids as $i => $chat_id) {
+			$more = $more_fields[$i] ?? $more_fields[0] ?? $more_fields ?? null;
+			if ($message_id = $this->sendMessage($chat_id, $text, $parse_mode, $do_log, $more))
+				$result[$chat_id] = $message_id;
 		}
 		return $result;
 	}
@@ -436,11 +443,12 @@ class TelegramBot {
 	 * 
 	 * @param string message
 	 * @param string parse mode of the message (optional)
+	 * @param array more postfields to send (optional)
 	 * 
 	 * @return bool status of the operation
 	 */
-	public function sendToAlarmChat($message, $parse_mode = '') {
-		return $this->sendMessage($this->admin_chat_id, $message, $parse_mode, false);
+	public function sendToAlarmChat($message, $parse_mode = '', $more_fields = null) {
+		return $this->sendMessage($this->admin_chat_id, $message, $parse_mode, false, $more_fields);
 	}
 	
 	/**

@@ -59,6 +59,14 @@ class ViewControllerTest extends TestCase
         $this->assertEquals(200, $response->code);
     }
 
+    public function testStatuses() {
+        Storage::get('DBSimple')->rows = [[1]];
+        $controller = new ViewController();
+        $response = $controller->statuses();
+        $this->assertInstanceof('TNotifyer\Engine\Response', $response);
+        $this->assertEquals(200, $response->code);
+    }
+
     public function testUpdates() {
         Storage::get('DBSimple')->rows = [[1]];
         $controller = new ViewController();

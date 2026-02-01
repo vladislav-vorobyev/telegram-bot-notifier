@@ -9,16 +9,15 @@
 --
 
 CREATE TABLE `a_log` (
-  `id` int NOT NULL AUTO_INCREMENT,
+  `id` int NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `type` varchar(10) NOT NULL,
   `bot_id` int DEFAULT NULL,
+  `type` varchar(10) NOT NULL,
   `message` text NOT NULL,
   `data` json DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE `a_log`
-  ADD PRIMARY KEY (`id`),
   ADD KEY `created` (`created`),
   ADD KEY `type` (`type`),
   ADD KEY `bot_id` (`bot_id`);
@@ -28,14 +27,13 @@ ALTER TABLE `a_log`
 --
 
 CREATE TABLE `a_websites` (
-  `id` int NOT NULL AUTO_INCREMENT,
+  `id` int NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `url` varchar(250) NOT NULL,
   `active` tinyint(1) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE `a_websites`
-  ADD PRIMARY KEY (`id`),
   ADD KEY `updated` (`updated`);
 
 --
@@ -58,14 +56,13 @@ ALTER TABLE `bot_chats`
 --
 
 CREATE TABLE `bot_options` (
-  `id` int NOT NULL,
+  `id` int NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `bot_id` int NOT NULL,
   `key` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `value` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE `bot_options`
-  ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `bot_id_key` (`bot_id`,`key`) USING BTREE,
   ADD KEY `bot_id` (`bot_id`);
 
@@ -87,11 +84,29 @@ ALTER TABLE `bot_updates`
   ADD KEY `cmd` (`cmd`);
 
 --
+-- Структура таблицы `bot_log`
+--
+
+CREATE TABLE `bot_log` (
+  `id` int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `bot_id` int DEFAULT NULL,
+  `action` varchar(30) NOT NULL,
+  `request` json DEFAULT NULL,
+  `response` json DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE `bot_log`
+  ADD KEY `created` (`created`),
+  ADD KEY `action` (`action`),
+  ADD KEY `bot_id` (`bot_id`);
+
+--
 -- Структура таблицы `postings`
 --
 
 CREATE TABLE `postings` (
-  `id` int NOT NULL AUTO_INCREMENT,
+  `id` int NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `bot_id` int NOT NULL,
   `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
@@ -101,8 +116,28 @@ CREATE TABLE `postings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE `postings`
-  ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `bot_id_2` (`bot_id`,`type`,`posting_number`,`status`),
   ADD KEY `created` (`created`),
+  ADD KEY `type` (`type`),
+  ADD KEY `bot_id` (`bot_id`);
+
+--
+-- Структура таблицы `posting_status`
+--
+
+CREATE TABLE `posting_status` (
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `bot_id` int NOT NULL,
+  `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `posting_number` varchar(50) NOT NULL,
+  `status` varchar(50) NOT NULL,
+  `message_id` json
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE `posting_status`
+  ADD UNIQUE KEY `bot_id_2` (`bot_id`,`type`,`posting_number`),
+  ADD KEY `created` (`created`),
+  ADD KEY `updated` (`updated`),
   ADD KEY `type` (`type`),
   ADD KEY `bot_id` (`bot_id`);

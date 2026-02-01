@@ -189,14 +189,18 @@ class OZONProvider {
 
 	/**
 	 * Check new postings
+	 * 
+	 * @param string period to check (optional)
 	 */
-	public function doCheck() {
-		// determine a time from last check
-		$time = $this->getLastCheckTime();
-		$delta = (!empty($time) && ($time < 23*60*60))? ($time + 300) . ' seconds' : '24 hours';
+	public function doCheck($period = '') {
+		if (empty($period)) {
+			// determine a time from last check
+			$time = $this->getLastCheckTime();
+			$period = (!empty($time) && ($time < 23*60*60))? ($time + 300) . ' seconds' : '24 hours';
+		}
 
 		// get postings after last check but not far then 24 hours
-		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString($delta) );
+		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString($period) );
 		$datetime_to = new DateTime('now');
 		$data = $this->getFBSList($datetime_from, $datetime_to);
 
@@ -242,29 +246,34 @@ class OZONProvider {
 			return false;
 		}
 
-		// get current tbot id
+		// get bot internal id
 		$tbot_id = Storage::get('Bot')->getId();
 
 		// check posting status in DB
-		$sql = "SELECT count(*) FROM postings WHERE posting_number='{$r_posting_number}' AND type='ozon' AND bot_id={$tbot_id}";
-		$count = ($result = DB::fetch_row($sql))? $result[0] : 0;
+		// $sql = "SELECT count(*) FROM postings WHERE posting_number='{$r_posting_number}' AND type='ozon' AND bot_id={$tbot_id}";
+		// $count = ($result = DB::fetch_row($sql))? $result[0] : 0;
+		$old = DB::get_last_postings(1, $tbot_id, 'ozon', $r_posting_number);
 
 		// if new posting or in test mode then send notification
-		if ($count == 0 || Storage::get('App')->var('test-mode', false)) {
+		$message_id = [];
+		if (empty($old) || Storage::get('App')->var('test-mode', false)) {
 			if (in_array($r_status, ['cancelled', 'delivering', 'delivered'])) {
 				Log::debug("<b>(!) Status is not for notify: {$r_status}</b>");
 			} else {
 				// notify about new posting
-				if (!$this->sendNewPostingInfo($posting)) {
+				$message_id = $this->sendNewPostingInfo($posting);
+				if (empty($message_id)) {
 					Log::debug("Can't notify!");
 				}
 			}
+		}
 
-			// if new posting then save it to DB
-			if ($count == 0) {
-				// store the posting
-				DB::insert_posting($tbot_id, 'ozon', $r_posting_number, $r_status, $posting);
-			}
+		// if new posting or new status then save it to DB
+		if (empty($old) || ($old[0]['status'] ?? '') != $r_status) {
+			// store the posting
+			DB::insert_posting($tbot_id, 'ozon', $r_posting_number, $r_status, $posting);
+			// store the status
+			DB::save_posting_status($tbot_id, 'ozon', $r_posting_number, $r_status, $message_id);
 		}
 
 		return true;
