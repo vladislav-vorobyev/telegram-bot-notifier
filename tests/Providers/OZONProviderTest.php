@@ -29,6 +29,34 @@ class OZONProviderTest extends LocalTestCase
         "posting_number" => "36615787-0025-1",
     ];
 
+    const CANCELLED_EXAMPLE = [
+        "status" => "cancelled",
+        "order_id" => 34454315739,
+        "products" => [
+            [
+                "sku" => 2230185896,
+                "imei" => [],
+                "name" => "Стелька арамидная, 44",
+                "price" => "5500.0000",
+                "offer_id" => "стелька_44",
+                "quantity" => 1,
+                "currency_code" => "RUB",
+                "is_blr_traceable" => false,
+                "is_marketplace_buyout" => false
+            ],
+        ],
+        "order_number" => "36615787-0025",
+        "posting_number" => "36615787-0025-1",
+        "cancellation" => [
+            "cancel_reason" => "Покупатель отменил заказ: не устроил срок доставки",
+            "cancel_reason_id" => 505,
+            "cancellation_type" => "client",
+            "cancelled_after_ship" => false,
+            "cancellation_initiator" => "Клиент",
+            "affect_cancellation_rating" => false
+        ],
+    ];
+
     /**
      * This method is called before the first test of this test class is run.
      */
@@ -43,6 +71,13 @@ class OZONProviderTest extends LocalTestCase
         Storage::get('DBSimple')->reset();
         Storage::set('OZON', new OZONProvider('00','AA'));
         $this->assertEmpty(Storage::get('OZON')->lastErrorMessage());
+    }
+
+    public function testgetProductsText()
+    {
+        Storage::get('DBSimple')->reset();
+        Storage::set('OZON', new OZONProvider('00','AA'));
+        $this->assertNotEmpty(Storage::get('OZON')->getProductsText(self::POSTING_EXAMPLE));
     }
 
     /**
@@ -91,7 +126,7 @@ class OZONProviderTest extends LocalTestCase
      * @depends testGetLastCheckTime
      * @depends testCreation
      */
-    public function testDoCheck()
+    public function testDoCheckNew()
     {
         Storage::get('DBSimple')->reset();
         Storage::set('CURL', new FakeCURL([
@@ -100,13 +135,39 @@ class OZONProviderTest extends LocalTestCase
             ],
         ]));
         $ozon = Storage::get('OZON');
-        $ozon->doCheck();
+        $ozon->doCheckNew();
 
         $this->assertEmpty($ozon->lastErrorMessage());
         $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
         // $this->outputDBHistory();
         $this->assertDBHistory([[
             'INSERT INTO a_log', [0, 'check', 'OZON']
+        ]]);
+    }
+
+    /**
+     * @depends testCreation
+     */
+    public function testdoCheckCancelled()
+    {
+        Storage::get('DBSimple')->reset(['status'=>'']);
+        Storage::set('CURL', new FakeCURL([
+            'result' => [
+                'postings' => [self::CANCELLED_EXAMPLE],
+            ],
+        ]));
+        $ozon = Storage::get('OZON');
+        $ozon->doCheckCancelled();
+
+        $this->assertEmpty($ozon->lastErrorMessage());
+        $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
+        $this->assertEquals(4, count(explode("\n", Storage::get('Bot')->last_main_msg)));
+        // $this->outputDBHistory();
+        $this->assertDBHistory([[
+            'SELECT * FROM posting_status', [0, 'ozon', '36615787-0025-1', 1],
+            'INSERT INTO posting_status', [0, 'ozon', '36615787-0025-1', 'cancelled', '[]', 'cancelled'],
+            'INSERT IGNORE INTO postings', [0, 'ozon', '36615787-0025-1', 'cancelled', self::ANY_VALUE],
+            'SELECT * FROM postings', [0, 'ozon', '36615787-0025-1', 1],
         ]]);
     }
 

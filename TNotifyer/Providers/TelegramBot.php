@@ -439,6 +439,26 @@ class TelegramBot {
 	}
 	
 	/**
+	 * Send a reply message to the main Telegram chats
+	 * 
+	 * @param array message ids to reply
+	 * @param string message
+	 * @param string parse mode of the message (optional)
+	 * @param bool store an action to log (true by default)
+	 * 
+	 * @return array of message id
+	 */
+	public function replyToMainChats($reply_ids, $text, $parse_mode = '', $do_log = true) {
+		$result = [];
+		foreach ($this->main_chats_ids as $i => $chat_id) {
+			$more = !empty($reply_ids[$chat_id])? ['reply_parameters' => ['message_id' => $reply_ids[$chat_id]]] : null;
+			if ($message_id = $this->sendMessage($chat_id, $text, $parse_mode, $do_log, $more))
+				$result[$chat_id] = $message_id;
+		}
+		return $result;
+	}
+	
+	/**
 	 * Send a text message to the alarm Telegram chat
 	 * 
 	 * @param string message

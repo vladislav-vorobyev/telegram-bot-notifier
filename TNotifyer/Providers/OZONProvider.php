@@ -177,6 +177,67 @@ class OZONProvider {
 	}
 
 	/**
+	 * Check postings
+	 * 
+	 * @param string period to check new (optional)
+	 */
+	public function doCheck($period_new = '') {
+		$this->doCheckNew($period_new);
+		$this->doCheckCancelled();
+	}
+
+	/**
+	 * Check postings status
+	 * 
+	 * @param string period to check (optional)
+	 */
+	public function doCheckStatus($period = '') {
+		// get postings after last check but not far then 24 hours
+		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString($period ?? '2 month') );
+		$datetime_to = new DateTime('now');
+		$data = $this->getFBSList($datetime_from, $datetime_to);
+
+		// verify response
+		$r_postings = $this->verifyPostingsResponse($data);
+
+		// loop over postings
+		if (!empty($r_postings)) {
+			// process postings
+			foreach ($r_postings as &$posting) {
+				if (!$this->checkPosting($posting)) {
+					Log::put('error', 'OZON wrong posting data', $posting);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Check cancelled postings
+	 * 
+	 * @param string period to check (optional)
+	 */
+	public function doCheckCancelled($period = '') {
+		// get postings after last check but not far then 24 hours
+		$datetime_from = ( new DateTime('now') )->sub( DateInterval::createFromDateString(empty($period)? '7 days' : $period) );
+		$datetime_to = new DateTime('now');
+		$data = $this->getCancelledFBSList($datetime_from, $datetime_to);
+
+		// verify response
+		$r_postings = $this->verifyPostingsResponse($data);
+
+		// loop over postings
+		if (!empty($r_postings)) {
+			// Log::put('debug', 'OZON postings', $r_postings);
+			// process postings
+			foreach ($r_postings as &$posting) {
+				if (!$this->checkPosting($posting)) {
+					Log::put('error', 'OZON wrong posting data', $posting);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Determine a time from last check
 	 * 
 	 * @return int time in seconds
@@ -192,7 +253,7 @@ class OZONProvider {
 	 * 
 	 * @param string period to check (optional)
 	 */
-	public function doCheck($period = '') {
+	public function doCheckNew($period = '') {
 		if (empty($period)) {
 			// determine a time from last check
 			$time = $this->getLastCheckTime();
@@ -205,16 +266,7 @@ class OZONProvider {
 		$data = $this->getFBSList($datetime_from, $datetime_to);
 
 		// verify response
-		$r_postings = &$data['result']['postings'];
-		if (empty($data)) {
-			$this->last_error_message = 'OZON empty response or JSON error';
-			Log::put('error', $this->last_error_message);
-			throw new ExternalRequestException($this->last_error_message);
-		} elseif (!isset($r_postings)) {
-			$this->last_error_message = 'OZON wrong response';
-			Log::put('error', $this->last_error_message, $data);
-			throw new ExternalRequestException($this->last_error_message);
-		}
+		$r_postings = $this->verifyPostingsResponse($data);
 
 		// loop over postings
 		if (!empty($r_postings)) {
@@ -228,6 +280,30 @@ class OZONProvider {
 		}
 
 		Log::put('check', 'OZON');
+	}
+
+	/**
+	 * Verify postings response
+	 * 
+	 * @param mixed OZON API response
+	 * 
+	 * @return mixed reference to postings array
+	 */
+	public function verifyPostingsResponse(&$data) {
+		$r_postings = &$data['result']['postings'];
+
+		if (empty($data)) {
+			$this->last_error_message = 'OZON empty response or JSON error';
+			Log::put('error', $this->last_error_message);
+			throw new ExternalRequestException($this->last_error_message);
+
+		} elseif (!isset($r_postings)) {
+			$this->last_error_message = 'OZON wrong response';
+			Log::put('error', $this->last_error_message, $data);
+			throw new ExternalRequestException($this->last_error_message);
+		}
+
+		return $r_postings;
 	}
 
 	/**
@@ -250,8 +326,6 @@ class OZONProvider {
 		$tbot_id = Storage::get('Bot')->getId();
 
 		// check posting status in DB
-		// $sql = "SELECT count(*) FROM postings WHERE posting_number='{$r_posting_number}' AND type='ozon' AND bot_id={$tbot_id}";
-		// $count = ($result = DB::fetch_row($sql))? $result[0] : 0;
 		$old = DB::get_last_postings(1, $tbot_id, 'ozon', $r_posting_number);
 
 		// if new posting or in test mode then send notification
@@ -274,9 +348,37 @@ class OZONProvider {
 			DB::insert_posting($tbot_id, 'ozon', $r_posting_number, $r_status, $posting);
 			// store the status
 			DB::save_posting_status($tbot_id, 'ozon', $r_posting_number, $r_status, $message_id);
+	
+			// if cancelled is new status of the posting
+			if (!empty($old) && 'cancelled' == $r_status) {
+				// notify about cancelled posting
+				if (empty($this->sendCancelledPostingInfo($posting))) {
+					Log::debug("Can't notify!");
+				}
+			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * Prepare products lines text
+	 * 
+	 * @param mixed posting data
+	 * 
+	 * @return string text to show
+	 */
+	public function getProductsText($posting) {
+		$text = '';
+		if (isset($posting['products'])) {
+			foreach ($posting['products'] as &$product) {
+				if (isset($product['name'])) {
+					$price = round($product['price']);
+					$text .= "\n<i>{$product['name']} ({$product['offer_id']}) {$product['quantity']}шт. {$price} ₽</i>";
+				}
+			}
+		}
+		return $text;
 	}
 
 	/**
@@ -287,26 +389,37 @@ class OZONProvider {
 	 * @return bool is done
 	 */
 	public function sendNewPostingInfo($posting) {
-		// check structure
-		$r_posting_number = $posting['posting_number'];
-		if (!isset($r_posting_number)) {
-			Log::put('error', 'Wrong OZON posting format. Not found posting_number.', $posting);
-			return false;
-		}
-
 		// prepare message text
-		$text = "<b>OZON</b>\nНовый заказ: <code>{$r_posting_number}</code>";
-		if (isset($posting['products'])) {
-			foreach ($posting['products'] as &$product) {
-				if (isset($product['name'])) {
-					$price = round($product['price']);
-					$text .= "\n<i>{$product['name']} ({$product['offer_id']}) {$product['quantity']}шт. {$price} ₽</i>";
-				}
-			}
-		}
+		$text = "<b>OZON</b>\nНовый заказ: <code>{$posting['posting_number']}</code>" . $this->getProductsText($posting);
 
 		// send message
 		return Storage::get('Bot')->sendToMainChats($text, 'HTML');
+	}
+
+	/**
+	 * Notify about cancelled posting
+	 * 
+	 * @param mixed posting data
+	 * 
+	 * @return bool is done
+	 */
+	public function sendCancelledPostingInfo($posting) {
+		// get sent message id
+		$rows = DB::get_posting_status(1, -1, 'ozon', $posting['posting_number']);
+		$r_message_id = &$rows[0]['message_id'];
+		$message_id = empty($r_message_id)? [] : @json_decode($r_message_id);
+
+		// prepare message text
+		$text = "<b>OZON</b>\nОтменен заказ: <code>{$posting['posting_number']}</code>";
+		if (empty($message_id))
+			$text .= $this->getProductsText($posting);
+		$r_cancel_reason = &$posting['cancellation']['cancel_reason'];
+		if (isset($r_cancel_reason)) {
+			$text .= "\n<i>{$r_cancel_reason}</i>";
+		}
+
+		// send message
+		return Storage::get('Bot')->replyToMainChats($message_id, $text, 'HTML');
 	}
 
 	/**
