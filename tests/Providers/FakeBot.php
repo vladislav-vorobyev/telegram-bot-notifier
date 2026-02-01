@@ -6,12 +6,14 @@
  */
 namespace TNotifyer\Providers;
 
+use TNotifyer\Engine\Storage;
+
 /**
  * 
  * Provides the bot behavior for tests.
  * 
  */
-class FakeBot {
+class FakeBot extends Bot {
 
 	/**
 	 * @var string last message to main chat
@@ -33,51 +35,6 @@ class FakeBot {
 	 */
 	public $okResponse = ['ok' => 1];
 
-    /**
-     * @var string Telegram bot API id
-     */
-	public $api_id;
-	
-    /**
-     * @var string Telegram bot API key
-     */
-	public $api_key;
-	
-    /**
-     * @var string Full Telergam API path for bot
-     */
-	public $api_path;
-	
-    /**
-     * @var string Telergam bot webhook secret token
-     */
-	public $api_secret_token;
-	
-    /**
-     * @var mixed Telergam bot user (got from API via getMe)
-     */
-	public $info = [];
-	
-    /**
-     * @var int T-bot id (in DB identity)
-     */
-	public $bot_id;
-	
-    /**
-     * @var int T-bot host id (in chat identity)
-     */
-	public $bot_host_id;
-	
-    /**
-     * @var string Telergam alarm chat id (to notify on error)
-     */
-	public $admin_chat_id;
-
-    /**
-     * @var array Telergam main chats ids
-     */
-	public $main_chats_ids;
-	
 
 	/**
 	 * 
@@ -99,55 +56,7 @@ class FakeBot {
 
 		// prepare API request uri and secret_token
 		$this->api_path = '/';
-		$this->api_secret_token = 'AA';
 		$this->main_chats_ids = ['11'];
-	}
-	
-	/**
-	 * API Id getter
-	 * 
-	 * @return int bot API id
-	 */
-	public function getAPIId() {
-		return $this->api_id;
-	}
-	
-	/**
-	 * Id getter
-	 * 
-	 * @return int bot id
-	 */
-	public function getId() {
-		return $this->bot_id;
-	}
-	
-	/**
-	 * Host id getter
-	 * 
-	 * @return int host id
-	 */
-	public function getHostId() {
-		return $this->bot_host_id;
-	}
-	
-	/**
-	 * Admin chat id getter
-	 * 
-	 * @return int admin chat id
-	 */
-	public function getAdminChatId() {
-		return $this->admin_chat_id;
-	}
-	
-	/**
-	 * Check an API response for good status
-	 * 
-	 * @param mixed API response
-	 * 
-	 * @return bool status
-	 */
-	public static function isOK($response) {
-		return (isset($response['ok']) && $response['ok'] == 1)? true : false;
 	}
 	
 	/**
@@ -172,33 +81,6 @@ class FakeBot {
 	
 	/**
 	 * 
-	 * Get and check updates from Telegram bot
-	 * 
-	 * @return mixed API response
-	 */
-	public function checkUpdates() {
-		return $this->okResponse;
-	}
-	
-	/**
-	 * Check an update from Telegram bot.
-	 * Add/remove a chats to/from main list.
-	 */
-	public function checkUpdate($update) {
-	}
-	
-	/**
-	 * 
-	 * Telegram bot webhook handler
-	 * 
-	 * @return mixed response to API
-	 */
-	public function webhook() {
-		return true;
-	}
-	
-	/**
-	 * 
 	 * Prepare a Telegram bot webhook URL
 	 * 
 	 * @return string webhook URL
@@ -209,75 +91,21 @@ class FakeBot {
 	
 	/**
 	 * 
-	 * Set a webhook to Telegram bot
-	 * 
-	 * @return mixed response from API
-	 */
-	public function setWebhook() {
-		return $this->okResponse;
-	}
-	
-	/**
-	 * 
-	 * Remove a webhook from Telegram bot
-	 * 
-	 * @return mixed response from API
-	 */
-	public function removeWebhook() {
-		return $this->okResponse;
-	}
-	
-	/**
-	 * 
 	 * Send a message to Telegram chat
 	 * 
 	 * @return bool status of the operation
 	 */
-	public function sendMessage($chat_id, $text, $parse_mode = '', $do_log = true) {
-		return 99;
-	}
-	
-	/**
-	 * Send a text message to the main Telegram chats
-	 * 
-	 * @return bool status of the operation
-	 */
-	public function sendToMainChats($text, $parse_mode = '', $do_log = true) {
+	public function sendMessage($chat_id, $text, $parse_mode = '', $do_log = true, $more_fields = null) {
 		$this->last_main_msg = $text;
-		$ret = [];
-		foreach($this->main_chats_ids as $chat_id) $ret[$chat_id] = 99;
-		return $ret;
+		return 99;
 	}
 	
 	/**
 	 * Send a text message to the alarm Telegram chat
 	 */
-	public function sendToAlarmChat($message, $parse_mode = '') {
+	public function sendToAlarmChat($message, $parse_mode = '', $more_fields = null) {
 		$this->last_alarm_msg = $message;
-		return $this->sendMessage('00', $message, $parse_mode, false);
-	}
-	
-	/**
-	 * Send an alarm message
-	 */
-	public function alarm($message, $data = null) {
-		return $this->sendToAlarmChat($message);
-	}
-	
-	/**
-	 * Prepare data as readable json for a message
-	 */
-	public static function convertToJson($data) {
-		return mb_strimwidth(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_NUMERIC_CHECK), 0, 20, "...");
-	}
-	
-	/**
-	 * Get information about the bot
-	 * 
-	 * @return array bot information
-	 */
-	public function info() {
-		return $this->info;
+		return $this->sendMessage('00', $message, $parse_mode, false, $more_fields);
 	}
     
 
@@ -300,35 +128,5 @@ class FakeBot {
 	 */
 	public function getOZONToken() {
 		return ['', ''];
-	}
-	
-	/**
-	 * Change the bot option and sending success/fail message
-	 */
-	public function changeOptionAct($option_name, $value, $success_msg = '', $fail_msg = 'Ошибка изменения!') {
-	}
-	
-	/**
-	 * 
-	 * Run jobs activity of the bot
-	 * 
-	 */
-	public function runJobs() {
-	}
-	
-	/**
-	 * 
-	 * Send a TelegramBot day activity message to alarm Telegram chat
-	 * 
-	 */
-	public function sendTbotDayActivity() {
-	}
-	
-	/**
-	 * 
-	 * Check a status of websites (by the list from DB)
-	 * 
-	 */
-	public function pingWebsites() {
 	}
 }
