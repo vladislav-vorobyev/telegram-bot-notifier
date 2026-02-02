@@ -58,6 +58,10 @@ class LocalTestCase extends TestCase
         $last_index = count($db->sql_history) - 1;
 
         foreach ($db_history as $i => $step) {
+            // check step
+            if (count($step) != 2)
+                $this->assertCount(2, $step, '[assertDBHistory] Two parameters required for step!');
+
             list($sql, $args) = $step;
 
             // take sql and args from db history step by step backward

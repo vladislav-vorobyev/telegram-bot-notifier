@@ -16,6 +16,79 @@ use TNotifyer\Engine\Storage;
 class DBSimple {
 	
 	/**
+	 * Get rows from a table
+	 * 
+	 * @param string table name
+	 * @param mixed structure with next params:
+	 * {
+	 *   @param int 'limit' limit to get (optional)
+	 *   @param string 'orderby' order by (optional)
+	 *   @param array 'where' array of where cases (optional)
+	 *    where case like 'column' => null | $value | ['operation', $value] | ['operation'] (skipped if null)
+	 *   @param string 'columns' to select (optional, * by default)
+	 * }
+	 */
+	public static function select($table_name, $params) {
+		$bind = '';
+		$args = [];
+
+		// prepare where sql part
+		$where = [];
+		if (!empty($params['where'])) {
+			foreach ($params['where'] as $key => $value)
+				// skip null values
+				if (!is_null($value)) {
+					$add_arg = true;
+					if (is_array($value)) {
+						$operation = $value[0];
+						if (isset($value[1])) {
+							$operation .= '?';
+							$value = $value[1];
+						} else {
+							// no arg to add
+							$add_arg = false;
+						}
+					} else {
+						// default operation
+						$operation = '=?';
+					}
+					if ($add_arg) {
+						// add arg and bindings string
+						$args[] = $value;
+						$bind .= is_string($value)? 's' : 'i';
+					}
+					$where[] = $key . $operation;
+				}
+		}
+		$where = implode(' AND ', $where);
+		if (!empty($where)) $where = ' WHERE ' . $where;
+
+		// prepare order by sql part
+		$orderby = '';
+		if (!empty($params['orderby'])) {
+			$orderby = ' ORDER BY ' . $params['orderby'];
+		}
+
+		// prepare limit sql part
+		$limit = '';
+		if (!empty($params['limit'])) {
+			$limit = ' LIMIT ?';
+			$bind .= 'i';
+			$args[] = $params['limit'];
+		}
+
+		// prepare columns to select
+		$columns = empty($params['columns'])? '*' : $params['columns'];
+
+		// prepare sql
+		$sql = "SELECT {$columns} FROM {$table_name}{$where}{$orderby}{$limit}";
+		
+		// execute
+		return self::result_by_sql($sql, $bind, ...$args);
+	}
+
+
+	/**
 	 * Report about request error
 	 * 
 	 * @param mixed error message (get error from mysql by default)

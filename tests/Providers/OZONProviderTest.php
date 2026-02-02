@@ -166,12 +166,12 @@ class OZONProviderTest extends LocalTestCase
         $this->assertEquals(4, count(explode("\n", Storage::get('Bot')->last_main_msg)));
         $this->assertEquals(["-1001995445406"=>201], (array)json_decode(json_encode(["-1001995445406"=>201])));
         // $this->outputDBHistory();
-        $this->assertDBHistory([[
-            'SELECT * FROM posting_status', [0, 'ozon', '36615787-0025-1', 1],
-            'INSERT INTO posting_status', [0, 'ozon', '36615787-0025-1', 'cancelled', '[]', 'cancelled'],
-            'INSERT IGNORE INTO postings', [0, 'ozon', '36615787-0025-1', 'cancelled', self::ANY_VALUE],
-            'SELECT * FROM postings', [0, 'ozon', '36615787-0025-1', 1],
-        ]]);
+        $this->assertDBHistory([
+            ['SELECT * FROM posting_status', [0, 'ozon', '36615787-0025-1', 1]],
+            ['INSERT INTO posting_status', [0, 'ozon', '36615787-0025-1', 'cancelled', '[]', '2026-01-30T19:05:50Z', 'cancelled']],
+            ['INSERT IGNORE INTO postings', [0, 'ozon', '36615787-0025-1', 'cancelled', self::ANY_VALUE]],
+            ['SELECT * FROM postings', [0, 'ozon', '36615787-0025-1', 1]],
+        ]);
     }
 
     /**
@@ -217,10 +217,11 @@ class OZONProviderTest extends LocalTestCase
         $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
         $this->assertEquals(4, count(explode("\n", Storage::get('Bot')->last_main_msg)));
         // $this->outputDBHistory();
-        $this->assertDBHistory([[
-            'SELECT * FROM posting_status', [0, 'ozon', '36615787-0025-1', 1],
-            'INSERT INTO posting_status', [0, 'ozon', '36615787-0025-1', 'cancelled', '[]', 'cancelled'],
-        ]]);
+        $this->assertDBHistory([
+            ['INSERT INTO a_log', [0, 'check-status', 'OZON']],
+            ['SELECT * FROM posting_status', [0, 'ozon', '36615787-0025-1', 1]],
+            ['INSERT INTO posting_status', [0, 'ozon', '36615787-0025-1', 'cancelled', '[]', '2026-01-30T19:05:50Z', 'cancelled']],
+        ]);
     }
 
     /**

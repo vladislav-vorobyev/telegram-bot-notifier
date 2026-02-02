@@ -162,74 +162,6 @@ class DB extends DBSimple {
 
 
 	/**
-	 * Get rows from a table
-	 * 
-	 * @param string table name
-	 * @param mixed structure with next params:
-	 * {
-	 *   @param int 'limit' limit to get (optional)
-	 *   @param string 'orderby' order by (optional)
-	 *   @param array 'where' array of where cases (optional)
-	 *    where case like 'column' => null | $value | ['operation', $value] | ['operation'] (skipped if null)
-	 *   @param string 'columns' to select (optional, * by default)
-	 * }
-	 */
-	public static function get_rows($table_name, $params) {
-		$bind = '';
-		$args = [];
-
-		// prepare where sql part
-		$where = [];
-		if (!empty($params['where'])) {
-			foreach ($params['where'] as $key => $value)
-				if (!is_null($value)) {
-					$add_arg = true;
-					if (is_array($value)) {
-						$operation = $value[0];
-						if (isset($value[1])) {
-							$operation .= '?';
-							$value = $value[1];
-						} else {
-							$add_arg = false;
-						}
-					} else {
-						$operation = '=?';
-					}
-					if ($add_arg) {
-						$args[] = $value;
-						$bind .= is_string($value)? 's' : 'i';
-					}
-					$where[] = $key . $operation;
-				}
-		}
-		$where = implode(' AND ', $where);
-		if (!empty($where)) $where = ' WHERE ' . $where;
-
-		// prepare order by sql part
-		$orderby = '';
-		if (!empty($params['orderby'])) {
-			$orderby = ' ORDER BY ' . $params['orderby'];
-		}
-
-		// prepare limit sql part
-		$limit = '';
-		if (!empty($params['limit'])) {
-			$limit = ' LIMIT ?';
-			$bind .= 'i';
-			$args[] = $params['limit'];
-		}
-
-		// prepare columns to select
-		$columns = empty($params['columns'])? '*' : $params['columns'];
-
-		// prepare sql
-		$sql = "SELECT {$columns} FROM {$table_name}{$where}{$orderby}{$limit}";
-		
-		// execute
-		return self::result_by_sql($sql, $bind, ...$args);
-	}
-
-	/**
 	 * Get last from postings table
 	 * 
 	 * @param int limit to get
@@ -241,7 +173,7 @@ class DB extends DBSimple {
 	public static function get_last_postings($limit, $bot_id = null, $type = null, $posting_number = null, $status = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('postings', [
+		return self::select('postings', [
 			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number, 'status' => $status],
 			'orderby' => 'id DESC',
 			'limit' => $limit
@@ -258,7 +190,7 @@ class DB extends DBSimple {
 	public static function get_last_log($limit, $bot_id = null, $type = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('a_log', [
+		return self::select('a_log', [
 			'where' => ['bot_id' => $bot_id, 'type' => $type], 'orderby' => 'id DESC', 'limit' => $limit
 		]);
 	}
@@ -272,7 +204,7 @@ class DB extends DBSimple {
 	public static function get_last_updates($limit, $bot_id = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('bot_updates', [
+		return self::select('bot_updates', [
 			'where' => ['bot_id' => $bot_id], 'orderby' => 'created DESC, update_id DESC', 'limit' => $limit
 		]);
 	}
@@ -289,7 +221,7 @@ class DB extends DBSimple {
 	public static function get_posting_status($limit, $bot_id = null, $type = null, $posting_number = null, $status = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('posting_status', [
+		return self::select('posting_status', [
 			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number, 'status' => $status],
 			'orderby' => 'created DESC',
 			'limit' => $limit
@@ -308,7 +240,7 @@ class DB extends DBSimple {
 	public static function get_last_log_time($bot_id = null, $type = null, $message = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('a_log', [
+		return self::select('a_log', [
 			'columns' => 'TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created',
 			'where' => ['bot_id' => $bot_id, 'type' => $type, 'message' => $message],
 			'orderby' => 'id DESC',
@@ -329,7 +261,7 @@ class DB extends DBSimple {
 	public static function get_days_of_status($bot_id = null, $type = null, $posting_number = null, $status = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
-		return self::get_rows('posting_status', [
+		return self::select('posting_status', [
 			'columns' => 'DATEDIFF( NOW(), created ) AS days, created',
 			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number, 'status' => $status],
 			'orderby' => 'created ASC',
@@ -340,6 +272,11 @@ class DB extends DBSimple {
 
 	/**
 	 * Store to bot chats table
+	 * 
+	 * @param int bot internal id
+	 * @param string chat id
+	 * @param string type
+	 * @param string chat title
 	 */
 	public static function insert_bot_chats($bot_id, $chat_id, $type, $title) {
 		$sql = 'INSERT INTO bot_chats (bot_id, chat_id, type, title) VALUES (?,?,?,?)';
@@ -349,6 +286,9 @@ class DB extends DBSimple {
 
 	/**
 	 * Remove from bot chats table
+	 * 
+	 * @param int bot internal id
+	 * @param string chat id
 	 */
 	public static function remove_bot_chats($bot_id, $chat_id) {
 		$sql = 'DELETE FROM bot_chats WHERE bot_id = ? AND chat_id = ?';
@@ -358,9 +298,12 @@ class DB extends DBSimple {
 
 	/**
 	 * Get from bot chats table
+	 * 
+	 * @param int bot internal id
+	 * @param string type (optional)
 	 */
 	public static function get_bot_chats($bot_id, $type = null) {
-		return self::get_rows('bot_chats', ['where' => ['bot_id' => $bot_id, 'type' => $type]]);
+		return self::select('bot_chats', ['where' => ['bot_id' => $bot_id, 'type' => $type]]);
 	}
 
 

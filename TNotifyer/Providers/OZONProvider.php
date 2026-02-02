@@ -223,6 +223,9 @@ class OZONProvider {
 			}
 		}
 
+		if (empty($offset))
+			Log::put('check-status', 'OZON');
+
 		// if has next then call recursively
 		$r_has_next = &$data['result']['has_next'];
 		if (!empty($r_has_next)) {
