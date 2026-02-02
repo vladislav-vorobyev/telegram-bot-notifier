@@ -277,12 +277,13 @@ class DB extends DBSimple {
 	 * @param int bot internal id (optional, -1 = use Bot from Storage)
 	 * @param string type (optional)
 	 * @param string posting number (optional)
+	 * @param string posting status (optional)
 	 */
-	public static function get_posting_status($limit, $bot_id = null, $type = null, $posting_number = null) {
+	public static function get_posting_status($limit, $bot_id = null, $type = null, $posting_number = null, $status = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
 		return self::get_rows('posting_status', [
-			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number],
+			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number, 'status' => $status],
 			'orderby' => 'created DESC',
 			'limit' => $limit
 		]);
@@ -295,15 +296,36 @@ class DB extends DBSimple {
 	 * @param string type (optional)
 	 * @param string message (optional)
 	 * 
-	 * @return array ['sec', 'created'] time in seconds and created time
+	 * @return array ['sec', 'created'] time in seconds and created datetime
 	 */
 	public static function get_last_log_time($bot_id = null, $type = null, $message = null) {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
 		return self::get_rows('a_log', [
 			'columns' => 'TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created',
-			'where' => ['bot_id'=>$bot_id, 'type'=>$type, 'message'=>$message],
+			'where' => ['bot_id' => $bot_id, 'type' => $type, 'message' => $message],
 			'orderby' => 'id DESC',
+			'limit' => 1,
+		]);
+	}
+
+	/**
+	 * Determine a days period to earliest record of posting_status
+	 * 
+	 * @param int bot id (optional, -1 = use Bot from Storage)
+	 * @param string type (optional)
+	 * @param string posting number (optional)
+	 * @param string posting status (optional)
+	 * 
+	 * @return array ['days', 'created'] days period and created datetime
+	 */
+	public static function get_days_of_status($bot_id = null, $type = null, $posting_number = null, $status = null) {
+		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
+		// execute
+		return self::get_rows('posting_status', [
+			'columns' => 'DATEDIFF( NOW(), created ) AS days, created',
+			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number, 'status' => $status],
+			'orderby' => 'created ASC',
 			'limit' => 1,
 		]);
 	}

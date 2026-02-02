@@ -162,12 +162,62 @@ class OZONProviderTest extends LocalTestCase
         $this->assertEmpty($ozon->lastErrorMessage());
         $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
         $this->assertEquals(4, count(explode("\n", Storage::get('Bot')->last_main_msg)));
+        $this->assertEquals(["-1001995445406"=>201], (array)json_decode(json_encode(["-1001995445406"=>201])));
         // $this->outputDBHistory();
         $this->assertDBHistory([[
             'SELECT * FROM posting_status', [0, 'ozon', '36615787-0025-1', 1],
             'INSERT INTO posting_status', [0, 'ozon', '36615787-0025-1', 'cancelled', '[]', 'cancelled'],
             'INSERT IGNORE INTO postings', [0, 'ozon', '36615787-0025-1', 'cancelled', self::ANY_VALUE],
             'SELECT * FROM postings', [0, 'ozon', '36615787-0025-1', 1],
+        ]]);
+    }
+
+    /**
+     * @depends testCreation
+     * @dataProvider getUnfinishedPeriodDataProvider
+     */
+    public function testgetUnfinishedPeriod($rows, $value)
+    {
+        Storage::get('DBSimple')->reset($rows);
+        $result = Storage::get('OZON')->getUnfinishedPeriod();
+
+        // $this->outputDBHistory();
+        $this->assertDBHistory([[
+            "SELECT DATEDIFF( NOW(), created ) AS days, created FROM posting_status WHERE bot_id=? AND type=? AND status NOT IN ('delivered', 'cancelled') ORDER BY created ASC LIMIT ?",
+            [0, 'ozon', 1]
+        ]]);
+        $this->assertEquals($value, $result);
+    }
+    
+    public function getUnfinishedPeriodDataProvider()
+    {
+        return [
+            '11 days' => [ [['days'=>'11']], 11 ],
+            'empty' => [ [], 0 ]
+        ];
+    }
+
+    /**
+     * @depends testCreation
+     */
+    public function testdoCheckStatus()
+    {
+        Storage::get('DBSimple')->reset(['status'=>'']);
+        Storage::set('CURL', new FakeCURL([
+            'result' => [
+                'postings' => [self::CANCELLED_EXAMPLE],
+            ],
+        ]));
+        $ozon = Storage::get('OZON');
+        $ozon->doCheckStatus();
+
+        $this->assertEmpty($ozon->lastErrorMessage());
+        $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
+        $this->assertEquals(4, count(explode("\n", Storage::get('Bot')->last_main_msg)));
+        // $this->outputDBHistory();
+        $this->assertDBHistory([[
+            'SELECT * FROM posting_status', [0, 'ozon', '36615787-0025-1', 1],
+            'INSERT INTO posting_status', [0, 'ozon', '36615787-0025-1', 'cancelled', '[]', 'cancelled'],
         ]]);
     }
 

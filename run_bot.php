@@ -36,6 +36,7 @@ try {
         ['GET', '/test-msg', ['BotController', 'testMessage']],
         ['GET', '/bot-info', ['BotController', 'botInfo']],
         ['GET', '/ozon', ['OZONController', 'doCheck']],
+        ['GET', '/ozon-status', ['OZONController', 'doCheckStatus']],
         ['GET', '/ozon-info', ['OZONController', 'info']],
         ['GET', '/ozon-get', ['OZONController', 'getPosting']],
         ['GET', '/ozon-test', ['OZONController', 'makeFBSListTest']],

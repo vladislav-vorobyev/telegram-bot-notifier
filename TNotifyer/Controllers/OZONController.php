@@ -47,6 +47,23 @@ class OZONController extends AbstractWebController {
     }
 
     /**
+     * Do check status handler.
+     * 
+     * @return Response current response
+     */
+    public function doCheckStatus()
+    {
+        // get request optional parameter
+        $period = $this->request->getParam('period', '');
+
+        // make an action
+        Storage::get('OZON')->doCheckStatus($period);
+
+        // response
+        return $this->response->text('Check done.');
+    }
+
+    /**
      * Get FBS list test handler.
      * 
      * @return Response current response
