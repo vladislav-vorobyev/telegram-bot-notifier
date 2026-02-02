@@ -162,8 +162,9 @@ class DB extends DBSimple {
 	 * {
 	 *   @param int 'limit' limit to get (optional)
 	 *   @param string 'orderby' order by (optional)
-	 *   @param mixed 'where' where cases like ['column', $value] | ['column', $value, $sign] (optional)
-	 *   @param string columns to select (optional, * by default)
+	 *   @param array 'where' array of where cases (optional)
+	 *    where case like 'column' => null | $value | ['operation', $value] | ['operation'] (skipped if null)
+	 *   @param string 'columns' to select (optional, * by default)
 	 * }
 	 */
 	public static function get_rows($table_name, $params) {
@@ -173,11 +174,25 @@ class DB extends DBSimple {
 		// prepare where sql part
 		$where = [];
 		if (!empty($params['where'])) {
-			foreach ($params['where'] as $case)
-				if (!is_null($case[1])) {
-					$where[] = $case[0] . (empty($case[2])? '=' : $case[2]) . '?';
-					$args[] = $case[1];
-					$bind .= is_string($case[1])? 's' : 'i';
+			foreach ($params['where'] as $key => $value)
+				if (!is_null($value)) {
+					$add_arg = true;
+					if (is_array($value)) {
+						$operation = $value[0];
+						if (isset($value[1])) {
+							$operation .= '?';
+							$value = $value[1];
+						} else {
+							$add_arg = false;
+						}
+					} else {
+						$operation = '=?';
+					}
+					if ($add_arg) {
+						$args[] = $value;
+						$bind .= is_string($value)? 's' : 'i';
+					}
+					$where[] = $key . $operation;
 				}
 		}
 		$where = implode(' AND ', $where);
@@ -220,7 +235,9 @@ class DB extends DBSimple {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
 		return self::get_rows('postings', [
-			'where' => [['bot_id', $bot_id], ['type', $type], ['posting_number', $posting_number], ['status', $status]], 'orderby' => 'id DESC', 'limit'=>$limit
+			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number, 'status' => $status],
+			'orderby' => 'id DESC',
+			'limit' => $limit
 		]);
 	}
 
@@ -235,7 +252,7 @@ class DB extends DBSimple {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
 		return self::get_rows('a_log', [
-			'where' => [['bot_id', $bot_id], ['type', $type]], 'orderby' => 'id DESC', 'limit'=>$limit
+			'where' => ['bot_id' => $bot_id, 'type' => $type], 'orderby' => 'id DESC', 'limit' => $limit
 		]);
 	}
 
@@ -249,7 +266,7 @@ class DB extends DBSimple {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
 		return self::get_rows('bot_updates', [
-			'where' => [['bot_id', $bot_id]], 'orderby' => 'created DESC, update_id DESC', 'limit'=>$limit
+			'where' => ['bot_id' => $bot_id], 'orderby' => 'created DESC, update_id DESC', 'limit' => $limit
 		]);
 	}
 
@@ -265,10 +282,11 @@ class DB extends DBSimple {
 		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
 		return self::get_rows('posting_status', [
-			'where' => [['bot_id', $bot_id], ['type', $type], ['posting_number', $posting_number]], 'limit'=>$limit
+			'where' => ['bot_id' => $bot_id, 'type' => $type, 'posting_number' => $posting_number],
+			'orderby' => 'created DESC',
+			'limit' => $limit
 		]);
 	}
-
 
 	/**
 	 * Determine a time from last record of type
@@ -280,15 +298,11 @@ class DB extends DBSimple {
 	 * @return array ['sec', 'created'] time in seconds and created time
 	 */
 	public static function get_last_log_time($bot_id = null, $type = null, $message = null) {
-		$where = [];
-		if (!is_null($bot_id)) $where[] = ['bot_id', $bot_id === -1? Storage::get('Bot')->getId() : $bot_id];
-		if (!is_null($type)) $where[] = ['type', $type];
-		if (!is_null($message)) $where[] = ['message', $message];
-		// $sql = "SELECT TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created FROM a_log {$where} ORDER by id DESC LIMIT 1";
+		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		// execute
 		return self::get_rows('a_log', [
 			'columns' => 'TIME_TO_SEC( TIMEDIFF( NOW(), created ) ) AS sec, created',
-			'where' => $where,
+			'where' => ['bot_id'=>$bot_id, 'type'=>$type, 'message'=>$message],
 			'orderby' => 'id DESC',
 			'limit' => 1,
 		]);
