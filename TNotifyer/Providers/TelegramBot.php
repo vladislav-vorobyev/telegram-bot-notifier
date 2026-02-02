@@ -109,7 +109,7 @@ class TelegramBot {
 
 		// get main chats list
 		$this->main_chats_ids = [];
-		foreach (DB::get_bot_chats($this->bot_id) as $chat) {
+		foreach (DB::get_bot_chats($this->bot_id, 'main') as $chat) {
 			$this->main_chats_ids[] = $chat['chat_id'];
 		}
 	}
@@ -275,6 +275,8 @@ class TelegramBot {
 			if ('member' == ($r_status ?? '')) {
 				// add chat into main list
 				DB::insert_bot_chats($this->bot_id, $r_chat_id, 'main', $r_chat_title);
+				// notify about adding
+				$this->sendToAlarmChat("Привязан новый чат для оповещений: " . ($r_chat_title ?? ''));
 			}
 			if ('left' == ($r_status ?? '')) {
 				// remove chat from main list
@@ -463,12 +465,13 @@ class TelegramBot {
 	 * 
 	 * @param string message
 	 * @param string parse mode of the message (optional)
+	 * @param bool store an action to log (false by default)
 	 * @param array more postfields to send (optional)
 	 * 
 	 * @return bool status of the operation
 	 */
-	public function sendToAlarmChat($message, $parse_mode = '', $more_fields = null) {
-		return $this->sendMessage($this->admin_chat_id, $message, $parse_mode, false, $more_fields);
+	public function sendToAlarmChat($message, $parse_mode = '', $do_log = false, $more_fields = null) {
+		return $this->sendMessage($this->admin_chat_id, $message, $parse_mode, $do_log, $more_fields);
 	}
 	
 	/**

@@ -99,10 +99,19 @@ class Bot extends TelegramBot {
 
 			'/mainchats' => function($bot) {
 				$data = array_reduce( $this->getMainChatsInfo(), function($a, $val) {
-					$a[0] .= (++$a[1]) . '. ' . $val . "\n";
+					$a[0] .= (++$a[1]) . '. ' . $val . " (<b>/X_{$a[1]}</b> <i>для удаления</i>)\n";
 					return $a;
 				}, ['', 0]);
-				$bot->sendToAlarmChat($data[0]);
+				$bot->sendToAlarmChat($data[0], 'HTML');
+			},
+
+			'/X' => function($bot, $n) {
+				if (!empty($i = intval($n ?? 0))) {
+					if (DB::remove_bot_chats($bot->getId(), $bot->getMainChatsIds()[$i - 1]))
+						$bot->sendToAlarmChat('Привязка чата удалена');
+					else
+						$bot->alarm('chat num?', $i);
+				}
 			},
 
 			'/ozon' => function($bot) {
@@ -143,13 +152,15 @@ class Bot extends TelegramBot {
 
 			if (empty($chat_status)) {
 				// no specific status then try to find a command
-				$r_command = &$commands[$r_text];
+				$args = explode('_', $r_text);
+				$cmd = array_shift($args);
+				$r_command = &$commands[$cmd];
 				if (!empty($r_command) && $this->checkCommandAccess($r_chat_id)) {
 					if (is_callable($r_command)) {
-						$r_command($this);
+						$r_command($this, ...$args);
 					} elseif (is_array($r_command)) {
 						// two steps command
-						$this->changeOptionAct($status_option_name, $r_text, $r_command[0]);
+						$this->changeOptionAct($status_option_name, $cmd, $r_command[0]);
 					}
 				}
 

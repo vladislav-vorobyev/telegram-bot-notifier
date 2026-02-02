@@ -103,7 +103,7 @@ class FakeBot extends Bot {
 	/**
 	 * Send a text message to the alarm Telegram chat
 	 */
-	public function sendToAlarmChat($message, $parse_mode = '', $more_fields = null) {
+	public function sendToAlarmChat($message, $parse_mode = '', $do_log = false, $more_fields = null) {
 		$this->last_alarm_msg = $message;
 		return $this->sendMessage('00', $message, $parse_mode, false, $more_fields);
 	}

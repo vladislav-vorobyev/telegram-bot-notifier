@@ -359,10 +359,8 @@ class DB extends DBSimple {
 	/**
 	 * Get from bot chats table
 	 */
-	public static function get_bot_chats($bot_id) {
-		$sql = 'SELECT * FROM bot_chats WHERE bot_id = ?';
-		// execute
-		return self::result_by_sql($sql, 'i', $bot_id);
+	public static function get_bot_chats($bot_id, $type = null) {
+		return self::get_rows('bot_chats', ['where' => ['bot_id' => $bot_id, 'type' => $type]]);
 	}
 
 

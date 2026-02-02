@@ -259,6 +259,9 @@ class BotTest extends LocalTestCase
                 ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"11"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
                 ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"11"}']],
             ]],
+            ['/X_1', [], [
+                ['DELETE FROM bot_chats WHERE bot_id = ? AND chat_id = ?', [0, '11']],
+            ]],
             ['/ozon', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
             ]],
