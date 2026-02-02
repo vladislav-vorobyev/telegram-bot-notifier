@@ -146,11 +146,18 @@ class DB extends DBSimple {
 	 * @param string posting number
 	 * @param string status value
 	 * @param mixed message_id (optional)
+	 * @param string created (optional)
 	 */
-	public static function save_posting_status($bot_id, $type, $posting_number, $status, $message_id = []) {
-		$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, message_id) VALUES (?,?,?,?,?)'
+	public static function save_posting_status($bot_id, $type, $posting_number, $status, $message_id = [], $created = '') {
+		if (empty($created)) {
+			$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, message_id) VALUES (?,?,?,?,?)'
 			. ' ON DUPLICATE KEY UPDATE `status`=?, `updated`=NOW()';
-		return self::execute_sql($sql, 'isssss', $bot_id, $type, $posting_number, $status, self::_json($message_id), $status);
+			return self::execute_sql($sql, 'isssss', $bot_id, $type, $posting_number, $status, self::_json($message_id), $status);
+		} else {
+			$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, message_id, created) VALUES (?,?,?,?,?,?)'
+			. ' ON DUPLICATE KEY UPDATE `status`=?, `updated`=NOW()';
+			return self::execute_sql($sql, 'issssss', $bot_id, $type, $posting_number, $status, self::_json($message_id), $created, $status);
+		}
 	}
 
 

@@ -392,7 +392,7 @@ class OZONProvider {
 			// store the posting
 			DB::insert_posting($tbot_id, 'ozon', $r_posting_number, $r_status, $posting);
 			// store the status
-			DB::save_posting_status($tbot_id, 'ozon', $r_posting_number, $r_status, $message_id);
+			DB::save_posting_status($tbot_id, 'ozon', $r_posting_number, $r_status, $message_id, ($posting['in_process_at'] ?? ''));
 	
 			// if cancelled is new status of the posting
 			if (!empty($old) && 'cancelled' == $r_status) {

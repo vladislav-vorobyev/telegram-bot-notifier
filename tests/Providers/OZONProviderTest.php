@@ -27,6 +27,7 @@ class OZONProviderTest extends LocalTestCase
         ],
         "order_number" => "36615787-0025",
         "posting_number" => "36615787-0025-1",
+        "in_process_at" => "2026-01-30T19:05:50Z",
     ];
 
     const CANCELLED_EXAMPLE = [
@@ -47,6 +48,7 @@ class OZONProviderTest extends LocalTestCase
         ],
         "order_number" => "36615787-0025",
         "posting_number" => "36615787-0025-1",
+        "in_process_at" => "2026-01-30T19:05:50Z",
         "cancellation" => [
             "cancel_reason" => "Покупатель отменил заказ: не устроил срок доставки",
             "cancel_reason_id" => 505,
@@ -92,7 +94,7 @@ class OZONProviderTest extends LocalTestCase
         $this->assertNotEmpty(Storage::get('Bot')->last_main_msg);
         // $this->outputDBHistory();
         $this->assertDBHistory([
-            ['INSERT INTO posting_status', [0, 'ozon', "36615787-0025-1", "awaiting_packaging", '{"11":99}', "awaiting_packaging"]],
+            ['INSERT INTO posting_status', [0, 'ozon', "36615787-0025-1", "awaiting_packaging", '{"11":99}', "2026-01-30T19:05:50Z", "awaiting_packaging"]],
             ['INSERT IGNORE INTO postings', [0, 'ozon', "36615787-0025-1", "awaiting_packaging", json_encode(self::POSTING_EXAMPLE)]],
         ]);
     }
