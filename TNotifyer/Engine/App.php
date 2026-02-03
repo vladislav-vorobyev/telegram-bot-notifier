@@ -87,6 +87,7 @@ class App {
         return [
             'name' => self::var('name'),
             'version' => self::var('version'),
+            'ROOT_URI' => self::env('ROOT_URI'),
             'SITE_URI' => self::env('SITE_URI', '/'),
             'BOT_INTERNAL_ID' => self::env('BOT_INTERNAL_ID'),
             'BOT_HOST_ID' => self::env('BOT_HOST_ID'),
