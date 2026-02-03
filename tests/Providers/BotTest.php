@@ -118,8 +118,8 @@ class BotTest extends LocalTestCase
         
         //$this->outputDBHistory();
         $this->assertDBHistory([
-            ['INSERT INTO bot_log', [0, 'setWebhook', '{"url":"webhook","secret_token":"AA"}', '{"ok":1,"result":[]}']],
-            ['INSERT INTO a_log', [0, 'tbot-send', 'setWebhook', '{"url":"webhook","secret_token":"AA"}']],
+            ['INSERT INTO bot_log', [0, 'setWebhook', '{"url":"webhook"}', '{"ok":1,"result":[]}']],
+            ['INSERT INTO a_log', [0, 'tbot-send', 'setWebhook']],
         ]);
     }
 

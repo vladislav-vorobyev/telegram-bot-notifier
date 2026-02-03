@@ -340,8 +340,17 @@ class TelegramBot {
 			'secret_token' => $this->api_secret_token
 		];
 
-		// make request to Telegram API
-		return $this->send($action, $postfields);
+		// log
+		Log::put('tbot-send', $action);
+
+		// make request to Telegram API without log for security reason
+		$response = $this->send($action, $postfields, false);
+
+		// bot log
+		unset($postfields['secret_token']);
+		DB::insert_bot_log($this->bot_id, $action, $postfields, $response);
+
+		return $response;
 	}
 	
 	/**
