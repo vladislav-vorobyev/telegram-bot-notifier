@@ -95,7 +95,7 @@ class BotController extends AbstractWebController {
     public function pingWebsites()
     {
         // run
-        Storage::get('Bot')->pingWebsites();
+        $this->response->print(Storage::get('Bot')->pingWebsites());
 
         // response
         return $this->response->text('Done.');

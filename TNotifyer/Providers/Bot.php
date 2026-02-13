@@ -250,6 +250,8 @@ class Bot extends TelegramBot {
 	 * 
 	 */
 	public function pingWebsites() {
+		$result = [];
+
 		// get a list from DB
 		$sql = 'SELECT * FROM a_websites';
 		$websites = DB::fetch_all($sql);
@@ -274,6 +276,11 @@ class Bot extends TelegramBot {
 					Log::put('error', 'DB: wrong update', $sql);
 				}
 			}
+
+			// response
+			$result[] = ['url' => $url, 'active' => $active];
 		}
+
+		return $result;
 	}
 }
