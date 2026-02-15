@@ -6,6 +6,8 @@
  */
 namespace TNotifyer\Engine;
 
+use TNotifyer\Exceptions\NotFoundException;
+
 /**
  * 
  * A main object to run the application.
@@ -17,7 +19,7 @@ class App {
      * Application variables
      */
     const VARIABLES = [
-        'version' => '1.3.1',
+        'version' => '1.4.0',
         'name' => 'Telegram Notifyer',
     ];
 
@@ -37,15 +39,55 @@ class App {
      */
     public function run()
     {
-        // Get this application router and determine current request
-        $current_request = Storage::get('Router')->getCurrent();
+        // Catch all Exceptions and make error response
+        try {
+            // Get this application router and determine current request
+            $current_route = Storage::get('Router')->getCurrent();
 
-        // Execute the request controller method
-        $controller = new $current_request->controller;
-        $response = $controller->{$current_request->method}();
+            // Execute the request controller method
+            $response = $this->execute($current_route);
 
-        // Output the response
-        $response->render();
+            // Output the response
+            $response->render();
+
+        } catch (\Exception $e) {
+            Storage::set('Response', new Response())->json(
+                ['error' => $e->getMessage()],
+                400
+            )->render();
+        }
+    }
+
+    /**
+     * 
+     * To execute the route.
+     * 
+     * @param array route = ['controller','method']
+     * 
+     * @return Response route response
+     */
+    public static function execute($route)
+    {
+        // controller
+        if (empty($route[0]))
+            throw new NotFoundException('Not found controller name');
+        $controller_name = 'TNotifyer\\Controllers\\' . $route[0];
+        if (!class_exists($controller_name))
+            throw new NotFoundException("Not found '{$controller_name}' class");
+        
+        // method
+        if (empty($route[1]))
+            throw new NotFoundException('Not found controller method name');
+        $method = $route[1];
+        if (!method_exists($controller_name, $method))
+            throw new NotFoundException("Not found '{$controller_name}->{$method}()' method");
+
+        // Execute the controller method
+        $controller = new $controller_name;
+        $response = $controller->{$method}();
+
+        // return the response
+        return $response;
     }
 
     /**
@@ -87,8 +129,8 @@ class App {
         return [
             'name' => self::var('name'),
             'version' => self::var('version'),
-            'ROOT_URI' => self::env('ROOT_URI'),
             'SITE_URI' => self::env('SITE_URI', '/'),
+            'ROOT_URI' => self::env('ROOT_URI'),
             'BOT_INTERNAL_ID' => self::env('BOT_INTERNAL_ID'),
             'BOT_HOST_ID' => self::env('BOT_HOST_ID'),
         ];

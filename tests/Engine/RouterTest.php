@@ -9,10 +9,9 @@ class RouterTest extends TestCase
         Storage::set('Response', new Response());
         Storage::set('Request', new FakeRequest('GET', '/api/v1/foo/'));
         $router = new Router();
-        $request = $router->getCurrent();
-        $this->assertInstanceof('TNotifyer\Engine\Request', $request);
-        $this->assertEquals('TNotifyer\Controllers\SystemController', $request->controller);
-        $this->assertEquals('notFound', $request->method);
+        $route = $router->getCurrent();
+        $this->assertEquals('SystemController', $route[0]);
+        $this->assertEquals('notFound', $route[1]);
     }
 
     public function testGet() {
@@ -20,10 +19,9 @@ class RouterTest extends TestCase
         Storage::set('Request', new FakeRequest('GET', '/api/v1/foo/'));
         $router = new Router();
         $router->setRoute('GET', '/api/v1/foo/', ['FakeController', 'foo']);
-        $request = $router->getCurrent();
-        $this->assertInstanceof('TNotifyer\Engine\Request', $request);
-        $this->assertEquals('TNotifyer\Controllers\FakeController', $request->controller);
-        $this->assertEquals('foo', $request->method);
+        $route = $router->getCurrent();
+        $this->assertEquals('FakeController', $route[0]);
+        $this->assertEquals('foo', $route[1]);
     }
 
     public function testPost() {
@@ -35,9 +33,8 @@ class RouterTest extends TestCase
             ['GET', '/api/v1/foo/', ['FakeController', 'foo']],
             ['POST', '/api/v1/foo/', ['FakeController', 'foo']],
         ]);
-        $request = $router->getCurrent();
-        $this->assertInstanceof('TNotifyer\Engine\Request', $request);
-        $this->assertEquals('TNotifyer\Controllers\FakeController', $request->controller);
-        $this->assertEquals('foo', $request->method);
+        $route = $router->getCurrent();
+        $this->assertEquals('FakeController', $route[0]);
+        $this->assertEquals('foo', $route[1]);
     }
 }

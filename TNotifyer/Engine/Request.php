@@ -55,16 +55,6 @@ class Request {
      */
     public $post;
 
-    /**
-     * @var string class name of current controller
-     */
-    public $controller;
-
-    /**
-     * @var string name of method of current controller
-     */
-    public $method;
-
 
     /**
      * 
@@ -116,29 +106,6 @@ class Request {
         } else {
             $this->post = $_POST;
         }
-    }
-
-    /**
-     * 
-     * Set a controller class and method for current request.
-     * 
-     * @param array [string,string] a controller class and method names
-     */
-    public function assignRoute($route)
-    {
-        // controller
-        if (empty($route[0]))
-            throw new NotFoundException('Not found controller name');
-        $this->controller = 'TNotifyer\\Controllers\\' . $route[0];
-        if (!class_exists($this->controller))
-            throw new NotFoundException("Not found '{$this->controller}' class");
-        
-        // method
-        if (empty($route[1]))
-            throw new NotFoundException('Not found controller method name');
-        $this->method = $route[1];
-        if (!method_exists($this->controller, $this->method))
-            throw new NotFoundException("Not found '{$this->controller}->{$this->method}()' method");
     }
     
     /**

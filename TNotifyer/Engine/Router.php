@@ -14,11 +14,6 @@ namespace TNotifyer\Engine;
 class Router {
 
     /**
-     * @var Request
-     */
-    protected $request;
-
-    /**
      * @var array A collection of route-matching rules to iterate through.
      */
     protected $map = [];
@@ -30,8 +25,6 @@ class Router {
      */
     public function __construct()
     {
-        $this->request = Storage::get('Request');
-
         // fill default 404 route
         $this->map['/404'] = ['GET' => ['SystemController', 'notFound']];
     }
@@ -65,30 +58,43 @@ class Router {
 
     /**
      * 
-     * Determine an executor for incumming request.
+     * Determine an executor for method and path.
      * 
-     * @return Request current request object.
+     * @param string method (GET,POST,...)
+     * @param string path
+     * 
+     * @return array ['class_name','method_name'].
      */
-    public function getCurrent()
+    public function getExecutor($method, $path)
     {
-        // Get current request method and path
-        $method = $this->request->request_method;
-        $path = $this->request->path;
-
         // Determine a route from map
         if (empty($this->map[$path])) {
             $path = '/404';
         }
         if (empty($this->map[$path][$method])) {
-            $current_route = $this->map['/404']['GET'];
+            $route = $this->map['/404']['GET'];
         } else {
-            $current_route = $this->map[$path][$method];
+            $route = $this->map[$path][$method];
         }
 
-        // Assign determined route
-        $this->request->assignRoute($current_route);
+        // Return determined route
+        return $route;
+    }
 
-        // Return request object
-        return $this->request;
+    /**
+     * 
+     * Determine an executor for incumming request.
+     * 
+     * @return array ['class_name','method_name'].
+     */
+    public function getCurrent()
+    {
+        // Get current request method and path
+        $request = Storage::get('Request');
+        $method = $request->request_method;
+        $path = $request->path;
+
+        // Determine and return a route
+        return $this->getExecutor($method, $path);
     }
 }
