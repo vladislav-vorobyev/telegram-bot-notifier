@@ -274,7 +274,7 @@ class TelegramBot {
 		if ($this->api_id == ($r_user_id ?? '') && isset($r_chat_id)) {
 			if ('member' == ($r_status ?? '')) {
 				// add chat into main list
-				DB::insert_bot_chats($this->bot_id, $r_chat_id, 'main', $r_chat_title);
+				DB::save_bot_chats($this->bot_id, $r_chat_id, 'main', $r_chat_title);
 				// notify about adding
 				$this->sendToAlarmChat("Привязан новый чат для оповещений: " . ($r_chat_title ?? ''));
 			}

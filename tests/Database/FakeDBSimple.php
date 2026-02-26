@@ -54,8 +54,9 @@ class FakeDBSimple {
 	 * 
 	 * @param array new rows
 	 */
-	public function reset($new_rows = []) {
+	public function reset($new_rows = [], $_query_result = 1) {
 		$this->rows = $new_rows;
+		$this->query_result = $_query_result;
 		$this->sql_history = [];
 		$this->args_history = [];
 		unset($this->last_sql);

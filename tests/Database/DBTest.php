@@ -1,13 +1,13 @@
 <?php
 namespace TNotifyer\Providers;
 
-use PHPUnit\Framework\TestCase;
+use TNotifyer\Framework\LocalTestCase;
 use TNotifyer\Engine\Storage;
 use TNotifyer\Providers\FakeBot;
 use TNotifyer\Database\FakeDBSimple;
 use TNotifyer\Database\DB;
 
-class DBTest extends TestCase
+class DBTest extends LocalTestCase
 {
     /**
      * This method is called before the first test of this test class is run.
@@ -89,6 +89,33 @@ class DBTest extends TestCase
             'limit' => [[5], "SELECT * FROM {$table_name} ORDER BY {$orderby} DESC LIMIT ?", [5] ],
             'limit, bot_id' => [[5, 2], "SELECT * FROM {$table_name} WHERE bot_id=? ORDER BY {$orderby} DESC LIMIT ?", [2, 5] ],
             'limit, bot_id(-1)' => [[5, -1], "SELECT * FROM {$table_name} WHERE bot_id=? ORDER BY {$orderby} DESC LIMIT ?", [0, 5] ],
+        ];
+    }
+
+    /**
+     * @dataProvider saveActivityDataProvider
+     */
+    public function testSaveActivity($rows, $args, $db_history)
+    {
+        $db = Storage::get('DBSimple');
+        $db->reset($rows);
+        DB::save_activity(...$args);
+
+        // $this->outputDBHistory();
+        $this->assertDBHistory($db_history);
+    }
+
+    public function saveActivityDataProvider()
+    {
+        return [
+            'insert' => [[], [0, 'alert', 'name', 'off'], [
+                ["INSERT INTO activity (bot_id, type, article, status) VALUES (?, ?, ?, ?)", [0, 'alert', 'name', 'off']],
+                ["SELECT * FROM activity WHERE bot_id=? AND type=? AND article=?", [0, 'alert', 'name']],
+            ]],
+            'update' => [[['status' => 'off']], [0, 'alert', 'name', 'off'], [
+                ["UPDATE activity SET status=? WHERE bot_id=? AND type=? AND article=?", ['off', 0, 'alert', 'name']],
+                ["SELECT * FROM activity WHERE bot_id=? AND type=? AND article=?", [0, 'alert', 'name']],
+            ]],
         ];
     }
 

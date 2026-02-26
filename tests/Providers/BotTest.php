@@ -272,20 +272,20 @@ class BotTest extends LocalTestCase
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozonsetid']]
             ]],
             ['123', [['value'=>'/ozonsetid']], [
-                ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
+                ['UPDATE bot_options SET', ['', 0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
-                ['INSERT INTO bot_options', [0, Bot::ON_OZON_CLI_ID, '123']],
+                ['UPDATE bot_options SET', ['123', 0, Bot::ON_OZON_CLI_ID]],
             ]],
             ['/ozonsetkey', [], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozonsetkey']]
             ]],
             ['123', [['value'=>'/ozonsetkey']], [
-                ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
+                ['UPDATE bot_options SET', ['', 0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
-                ['INSERT INTO bot_options', [0, Bot::ON_OZON_API_KEY, self::ANY_VALUE]],
+                ['UPDATE bot_options SET', [self::ANY_VALUE, 0, Bot::ON_OZON_API_KEY]],
             ]],
             ['/cancel', [['value'=>'/ozonsetkey']], [
-                ['INSERT INTO bot_options', [0, 'chat_00_status', '']],
+                ['UPDATE bot_options SET', ['', 0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
             ]],
