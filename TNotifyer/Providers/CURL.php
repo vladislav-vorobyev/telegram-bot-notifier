@@ -11,24 +11,29 @@ use TNotifyer\Exceptions\InternalException;
 
 /**
  * 
- * Single object to provide a CURL functional.
+ * Object to provide a CURL functional.
  * 
  */
 class CURL {
 	/**
 	 * @var bool make json decode after request
 	 */
-	public static $make_json_decode = true;
+	public $make_json_decode = true;
 
 	/**
 	 * @var bool silent on error
 	 */
-	public static $silent_on_error = false;
+	public $silent_on_error = false;
 
 	/**
 	 * @var string last error message
 	 */
-	public static $last_error_message;
+	public $last_error_message;
+
+	/**
+	 * @var mixed last request {'url','method','postfields'}
+	 */
+	public $last_request;
 
 
 	/**
@@ -39,13 +44,19 @@ class CURL {
 	 * @param array request headers (optional)
 	 * @param mixed request body (optional)
 	 */
-	public static function request($url, $method = 'GET', $headers = [], $postfields = '') {
+	public function request($url, $method = 'GET', $headers = [], $postfields = '') {
+		$this->last_request = [
+			'url' => $url,
+			'method' => $method,
+			'postfields' => $postfields,
+		];
+
 		$ch = curl_init();
 		if ($ch === false) {
 			$msg = 'Can not init curl';
 			Log::put('error', $msg); // log error
-			if (!self::$silent_on_error) echo $msg;
-			self::$last_error_message = $msg;
+			if (!$this->silent_on_error) echo $msg;
+			$this->last_error_message = $msg;
 			throw new InternalException($msg);
 		}
 
@@ -73,31 +84,39 @@ class CURL {
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $postfields);
 		}
 
+		// make request
 		$result = @curl_exec($ch);
 		$error = @curl_error($ch);
+
+		// one more try to make request if empty response
+		if (empty($result)) {
+			$result = @curl_exec($ch);
+			$error = @curl_error($ch);
+		}
+
 		@curl_close($ch);
 
-		if ($result === false || empty($result)) {
+		if (empty($result)) {
 			// no data
 			$msg = "No data from $url";
 			if (!empty($error)) $msg .= ' | Error: ' . $error;
 			Log::put('error', $msg); // log error
-			if (!self::$silent_on_error) echo $msg;
-			self::$last_error_message = $msg;
+			if (!$this->silent_on_error) echo $msg;
+			$this->last_error_message = $msg;
 			return false;
 		}
 
-		if (self::$make_json_decode) {
+		if ($this->make_json_decode) {
 			$response = @json_decode($result, true);
 			if (empty($response)) {
 				// wrong data
 				$msg = "Can't decode JSON: " . (json_last_error() != JSON_ERROR_NONE)? json_last_error_msg() : '';
-				Log::put('error', $msg, $result); // log error
-				if (!self::$silent_on_error) {
+				Log::put('error', $msg, ['request' => $this->last_request, 'response' => $result]); // log error
+				if (!$this->silent_on_error) {
 					echo $msg;
 					print_r($result);
 				}
-				self::$last_error_message = $msg;
+				$this->last_error_message = $msg;
 				return false;
 			}
 		} else {
@@ -113,7 +132,7 @@ class CURL {
 	 * @param string url for request
 	 * @param array request headers (optional)
 	 */
-	public static function get($url, $headers = []) {
+	public function get($url, $headers = []) {
 		return self::request($url, 'GET', $headers);
 	}
 
@@ -124,7 +143,7 @@ class CURL {
 	 * @param array request headers (optional)
 	 * @param mixed request body (optional)
 	 */
-	public static function post($url, $headers = [], $postfields = '') {
+	public function post($url, $headers = [], $postfields = '') {
 		return self::request($url, 'POST', $headers, $postfields);
 	}
 
@@ -134,13 +153,18 @@ class CURL {
 	 * @param string url for request
 	 * @param array request headers (optional)
 	 */
-	public static function head($url, $headers = []) {
+	public function head($url, $headers = []) {
+		$this->last_request = [
+			'url' => $url,
+			'method' => 'HEAD',
+		];
+
 		$ch = curl_init();
 		if ($ch === false) {
 			$msg = 'Can not init curl';
 			Log::put('error', $msg); // log error
-			if (!self::$silent_on_error) echo $msg;
-			self::$last_error_message = $msg;
+			if (!$this->silent_on_error) echo $msg;
+			$this->last_error_message = $msg;
 			throw new InternalException($msg);
 		}
 
@@ -167,8 +191,8 @@ class CURL {
 			// has error
 			$msg = 'HEAD request error: ' . $error;
 			Log::put('warning', $msg); // log warning
-			if (!self::$silent_on_error) echo $msg;
-			self::$last_error_message = $msg;
+			if (!$this->silent_on_error) echo $msg;
+			$this->last_error_message = $msg;
 			return false;
 		}
 		
@@ -181,7 +205,7 @@ class CURL {
 	 * @param string site url
 	 * @param int time to sleep before repeat a check (optional)
 	 */
-	public static function pingUrl($url, $time = 2) {
+	public function pingUrl($url, $time = 2) {
 		// $active = !empty(CURL::head($url)); // error on php 5.4
 		$active = self::head($url);
 		$active = !empty($active);
@@ -200,7 +224,7 @@ class CURL {
 	/**
 	 * Get last error message
 	 */
-	public static function last_error_message() {
-		return self::$last_error_message;
+	public function last_error_message() {
+		return $this->last_error_message;
 	}
 }
