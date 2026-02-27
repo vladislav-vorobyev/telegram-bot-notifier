@@ -155,15 +155,16 @@ class DB extends DBCommon {
 	 * @param mixed message_id (optional)
 	 * @param string created (optional)
 	 */
-	public static function save_posting_status($bot_id, $type, $posting_number, $status, $message_id = [], $created = '') {
+	public static function save_posting_status($bot_id, $type, $posting_number, $status, $sup_status, $order_text = '', $message_id = [], $created = '') {
+		if ($bot_id === -1) $bot_id = Storage::get('Bot')->getId();
 		if (empty($created)) {
-			$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, message_id) VALUES (?,?,?,?,?)'
-			. ' ON DUPLICATE KEY UPDATE `status`=?, `updated`=NOW()';
-			return self::execute_sql($sql, 'isssss', $bot_id, $type, $posting_number, $status, self::_json($message_id), $status);
+			$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, sup_status, order_text, message_id) VALUES (?,?,?,?,?,?,?)'
+			. ' ON DUPLICATE KEY UPDATE `status`=?, `sup_status`=?, `updated`=NOW()';
+			return self::execute_sql($sql, 'issssssss', $bot_id, $type, $posting_number, $status, $sup_status, $order_text, self::_json($message_id), $status, $sup_status);
 		} else {
-			$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, message_id, created) VALUES (?,?,?,?,?,?)'
-			. ' ON DUPLICATE KEY UPDATE `status`=?, `updated`=NOW()';
-			return self::execute_sql($sql, 'issssss', $bot_id, $type, $posting_number, $status, self::_json($message_id), $created, $status);
+			$sql = 'INSERT INTO posting_status (bot_id, type, posting_number, status, sup_status, order_text, message_id, created) VALUES (?,?,?,?,?,?,?,?)'
+			. ' ON DUPLICATE KEY UPDATE `status`=?, `sup_status`=?, `updated`=NOW()';
+			return self::execute_sql($sql, 'isssssssss', $bot_id, $type, $posting_number, $status, $sup_status, $order_text, self::_json($message_id), $created, $status, $sup_status);
 		}
 	}
 

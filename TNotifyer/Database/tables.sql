@@ -132,11 +132,14 @@ CREATE TABLE `posting_status` (
   `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `posting_number` varchar(50) NOT NULL,
   `status` varchar(50) NOT NULL,
-  `message_id` json
+  `sup_status` varchar(50) NOT NULL DEFAULT '',
+  `message_id` json,
+  `order_text` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE `posting_status`
   ADD UNIQUE KEY `bot_id_2` (`bot_id`,`type`,`posting_number`),
+  ADD KEY `status` (`status`),
   ADD KEY `created` (`created`),
   ADD KEY `updated` (`updated`),
   ADD KEY `type` (`type`),
