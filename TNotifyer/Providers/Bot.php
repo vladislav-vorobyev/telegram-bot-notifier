@@ -76,18 +76,12 @@ class Bot extends TelegramBot {
 	}
 	
 	/**
+	 * Get bot action handlers
 	 * 
-	 * Check an update from Telegram bot (overrides parent).
-	 * Provides some bot actions via messages.
-	 * 
-	 * @param mixed incoming API update
+	 * @return array commands
 	 */
-	public function checkUpdate($update) {
-		parent::checkUpdate($update);
-
-		if (empty($update)) return;
-
-		$commands = [
+	public function getCommands() {
+		return [
 
 			'/help' => function($bot) {
 				$help = ''
@@ -95,7 +89,6 @@ class Bot extends TelegramBot {
 					. '<b>/mainchats</b> <i>- список привязанных чатов</i>' . "\n"
 					. '<b>/test</b> <i>- отправить тестовое сообщение в привязанные чаты</i>' . "\n"
 					. '<b>/ozon</b> <i>- информация об OZON аккаунте</i>' . "\n"
-					. '<b>/ozonid</b> <i>- отобразить установленный OZON CLIENT ID</i>' . "\n"
 					. '<b>/ozonsetid</b> <i>- установить OZON CLIENT ID</i>' . "\n"
 					. '<b>/ozonsetkey</b> <i>- установить OZON API KEY</i>';
 				$bot->sendToAlarmChat($help, 'HTML');
@@ -113,7 +106,7 @@ class Bot extends TelegramBot {
 
 			'/mainchats' => function($bot) {
 				$data = array_reduce( $this->getMainChatsInfo(), function($a, $val) {
-					$a[0] .= (++$a[1]) . '. ' . $val . " (<b>/X_{$a[1]}</b> <i>для удаления</i>)\n";
+					$a[0] .= (++$a[1]) . '. ' . $val . " <i>(<b>/X_{$a[1]}</b> для удаления)</i>\n";
 					return $a;
 				}, ['', 0]);
 				$bot->sendToAlarmChat($data[0], 'HTML');
@@ -121,9 +114,10 @@ class Bot extends TelegramBot {
 
 			'/X' => function($bot, $n) {
 				if (!empty($i = intval($n ?? 0))) {
-					if (DB::remove_bot_chats($bot->getId(), $bot->getMainChatsIds()[$i - 1]))
+					if (DB::remove_bot_chats($bot->getId(), $bot->getMainChatsIds()[$i - 1])) {
 						$bot->sendToAlarmChat('Привязка чата удалена');
-					else
+						$bot->getCommands()['/mainchats']($bot);
+					} else
 						$bot->alarm('chat num?', $i);
 				}
 			},
@@ -131,11 +125,6 @@ class Bot extends TelegramBot {
 			'/ozon' => function($bot) {
 				$data = Storage::get('OZON')->getInfo();
 				$bot->sendToAlarmChat('<code>' . Bot::convertToJson($data) . '</code>', 'HTML');
-			},
-
-			'/ozonid' => function($bot) {
-				$data = $bot->getOption(Bot::ON_OZON_CLI_ID);
-				$bot->sendToAlarmChat('<code>' . $data . '</code>', 'HTML');
 			},
 
 			'/ozonsetid' => [
@@ -153,44 +142,65 @@ class Bot extends TelegramBot {
 				}
 			],
 		];
+	}
+	
+	/**
+	 * 
+	 * Check an update from Telegram bot (overrides parent).
+	 * Provides some bot actions via messages.
+	 * 
+	 * @param mixed incoming API update
+	 */
+	public function checkUpdate($update) {
+		parent::checkUpdate($update);
 
-		// inspecting message update
-		$message = $update['message'] ?? $update['edited_message'] ?? [];
-		$r_text = &$message['text'];
-		$r_chat_id = &$message['chat']['id'];
-		if (!empty($r_text) && !empty($r_chat_id)) {
+		if (empty($update)) return;
 
-			// get bot status on this chat
-			$status_option_name = "chat_{$r_chat_id}_status";
-			$chat_status = $this->getOption($status_option_name);
+		// do not throw exception on bot update
+		try {
+			$commands = $this->getCommands();
 
-			if (empty($chat_status)) {
-				// no specific status then try to find a command
-				$args = explode('_', $r_text);
-				$cmd = array_shift($args);
-				$r_command = &$commands[$cmd];
-				if (!empty($r_command) && $this->checkCommandAccess($r_chat_id)) {
-					if (is_callable($r_command)) {
-						$r_command($this, ...$args);
-					} elseif (is_array($r_command)) {
-						// two steps command
-						$this->changeOptionAct($status_option_name, $cmd, $r_command[0]);
+			// inspecting message update
+			$message = $update['message'] ?? $update['edited_message'] ?? [];
+			$r_text = &$message['text'];
+			$r_chat_id = &$message['chat']['id'];
+			if (!empty($r_text) && !empty($r_chat_id)) {
+
+				// get bot status on this chat
+				$status_option_name = "chat_{$r_chat_id}_status";
+				$chat_status = $this->getOption($status_option_name);
+
+				if (empty($chat_status)) {
+					// no specific status then try to find a command
+					$args = explode('_', $r_text);
+					$cmd = array_shift($args);
+					$r_command = &$commands[$cmd];
+					if (!empty($r_command) && $this->checkCommandAccess($r_chat_id)) {
+						if (is_callable($r_command)) {
+							$r_command($this, ...$args);
+						} elseif (is_array($r_command)) {
+							// two steps command
+							$this->changeOptionAct($status_option_name, $cmd, $r_command[0]);
+						}
 					}
-				}
 
-			} elseif ($r_text == '/cancel') {
-				// bot status is not empty and we got the cancel command
-				$this->changeOptionAct($status_option_name, '', 'Отмена команды');
+				} elseif ($r_text == '/cancel') {
+					// bot status is not empty and we got the cancel command
+					$this->changeOptionAct($status_option_name, '', 'Отмена команды');
 
-			} else {
-				// determine a command by bot status (two steps command)
-				$r_command = &$commands[$chat_status][1];
-				if (!empty($r_command) && is_callable($r_command) && $this->checkCommandAccess($r_chat_id)) {
-					$r_command($this, $r_text);
+				} else {
+					// determine a command by bot status (two steps command)
+					$r_command = &$commands[$chat_status][1];
+					if (!empty($r_command) && is_callable($r_command) && $this->checkCommandAccess($r_chat_id)) {
+						$r_command($this, $r_text);
+					}
+					// clear the status
+					$this->changeOptionAct($status_option_name, '');
 				}
-				// clear the status
-				$this->changeOptionAct($status_option_name, '');
 			}
+
+		} catch(\Exception $e) {
+			Log::put('error', "Fail update check. " . $e->getMessage());
 		}
 	}
 	

@@ -319,44 +319,55 @@ class BotTest extends LocalTestCase
             ['/help', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
             ]],
+
             ['/test', [], [
                 ['INSERT INTO bot_log', [0, 'sendMessage', self::ANY_VALUE, self::ANY_VALUE]],
                 ['INSERT INTO a_log', [0, 'tbot-send', 'sendMessage', self::ANY_VALUE]],
             ]],
+
             ['/info', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
             ]],
+
             ['/mainchats', [], [
                 ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"22"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
                 ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"22"}']],
                 ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"11"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
                 ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"11"}']],
             ]],
+
             ['/X_1', [], [
+                ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"22"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
+                ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"22"}']],
+                ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"11"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
+                ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"11"}']],
                 ['DELETE FROM bot_chats WHERE bot_id = ? AND chat_id = ?', [0, '11']],
             ]],
+
             ['/ozon', [], [
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
             ]],
-            ['/ozonid', [], [
-                ['SELECT * FROM bot_options', [0, Bot::ON_OZON_CLI_ID]]
-            ]],
+
             ['/ozonsetid', [], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozonsetid']]
             ]],
+
             ['123', [['value'=>'/ozonsetid']], [
                 ['UPDATE bot_options SET', ['', 0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
                 ['UPDATE bot_options SET', ['123', 0, Bot::ON_OZON_CLI_ID]],
             ]],
+
             ['/ozonsetkey', [], [
                 ['INSERT INTO bot_options', [0, 'chat_00_status', '/ozonsetkey']]
             ]],
+
             ['123', [['value'=>'/ozonsetkey']], [
                 ['UPDATE bot_options SET', ['', 0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
                 ['UPDATE bot_options SET', [self::ANY_VALUE, 0, Bot::ON_OZON_API_KEY]],
             ]],
+
             ['/cancel', [['value'=>'/ozonsetkey']], [
                 ['UPDATE bot_options SET', ['', 0, 'chat_00_status']],
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']],
