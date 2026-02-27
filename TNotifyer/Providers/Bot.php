@@ -6,9 +6,15 @@
  */
 namespace TNotifyer\Providers;
 
+use function is_string;
+use function intval;
 use TNotifyer\Database\DB;
 use TNotifyer\Engine\Storage;
+use TNotifyer\Engine\App;
 use TNotifyer\Providers\Log;
+use TNotifyer\Providers\Scheduler;
+use \DateTimeInterface;
+use \DateTime;
 
 /**
  * 
@@ -18,14 +24,24 @@ use TNotifyer\Providers\Log;
 class Bot extends TelegramBot {
 
 	/**
+	 * Job is active statuses option name
+	 */
+	public const ON_ACTIVE_JOBS = 'active-jobs';
+
+	/**
+	 * Jobs to do list option name
+	 */
+	public const ON_JOBS_TODO = 'jobs-todo';
+	
+	/**
 	 * OZON client id option name
 	 */
-	const ON_OZON_CLI_ID = 'ozon-id';
+	public const ON_OZON_CLI_ID = 'ozon-id';
 	
 	/**
 	 * OZON api key option name
 	 */
-	const ON_OZON_API_KEY = 'ozon-key';
+	public const ON_OZON_API_KEY = 'ozon-key';
 	
 	/**
 	 * Get the bot option
@@ -86,6 +102,7 @@ class Bot extends TelegramBot {
 			'/help' => function($bot) {
 				$help = ''
 					. '<b>/info</b> <i>- информация о приложении на хостинге</i>' . "\n"
+					. '<b>/jobs</b> <i>- список заданий</i>' . "\n"
 					. '<b>/mainchats</b> <i>- список привязанных чатов</i>' . "\n"
 					. '<b>/test</b> <i>- отправить тестовое сообщение в привязанные чаты</i>' . "\n"
 					. '<b>/ozon</b> <i>- информация об OZON аккаунте</i>' . "\n"
@@ -102,6 +119,25 @@ class Bot extends TelegramBot {
 			'/info' => function($bot) {
 				$data = Storage::get('App')->info();
 				$bot->sendToAlarmChat('<code>' . Bot::convertToJson($data) . '</code>', 'HTML');
+			},
+
+			'/jobs' => function($bot) {
+				$data = array_reduce( $this->getJobsList(), function($a, $job) {
+					$ico = "<tg-emoji emoji-id='5368324170671202286'>" . ($job['active']? '✔️' : '❌') . "</tg-emoji>";
+					$a[0] .= (++$a[1]) . ". {$job['action']} [{$job['schedule']}] {$ico} <i>(<b>/job_{$a[1]}</b>)</i>\n";
+					return $a;
+				}, ['', 0]);
+				$bot->sendToAlarmChat($data[0], 'HTML');
+			},
+
+			'/job' => function($bot, $n) {
+				if (!empty($i = intval($n ?? 0))) {
+					$value = [];
+					foreach ($this->getJobsList() as $j => $job)
+						$value[$job['action']] = ($i-1 == $j)? !$job['active'] : $job['active'];
+					$bot->changeOptionAct(Bot::ON_ACTIVE_JOBS, $value, 'Активность обновлена.');
+					$bot->getCommands()['/jobs']($bot);
+				}
 			},
 
 			'/mainchats' => function($bot) {
@@ -244,13 +280,93 @@ class Bot extends TelegramBot {
 	public function getMainChatsInfo() {
 		return array_map( function($chat_id){ return $this->getChatTitle($chat_id); }, $this->getMainChatsIds() );
 	}
-	
+
 	/**
 	 * 
 	 * Run jobs activity of the bot
 	 * 
 	 */
 	public function runJobs() {
+		// run stored jobs todo list
+		$this->runJobsTodo( $this->getOption(self::ON_JOBS_TODO, []), new DateTime('now') );
+
+		// store next jobs todo list
+		$this->setOption( self::ON_JOBS_TODO, $this->getNextJobsTodo(new DateTime('now')) );
+	}
+
+	/**
+	 * 
+	 * Run jobs todo list actions
+	 * 
+	 * @param mixed jobs todo list
+	 * @param DateTime current time
+	 */
+	public function runJobsTodo($jobs_todo, $now) {
+		// get option to check is job active
+		$active_jobs = $this->getOption(self::ON_ACTIVE_JOBS);
+
+		// run jobs todo list
+		foreach ($jobs_todo as $action => $time)
+			if ($active_jobs[$action] ?? true) {
+				$job_time = new DateTime($time);
+				if ($job_time <= $now) {
+					// run the action
+					try {
+						App::execute( Storage::get('Router')->getExecutor('GET', $action) );
+					} catch(\Exception $e) {
+						Log::put('error', "Fail run '{$action}'. " . $e->getMessage());
+					}
+				}
+			}
+	}
+
+	/**
+	 * 
+	 * Prepare next jobs todo list
+	 * 
+	 * @param DateTime current time
+	 * 
+	 * @return mixed jobs todo list ['action 1' => 'datetime', 'action 2' => ...]
+	 */
+	public function getNextJobsTodo($now) {
+		$next_jobs_todo = [];
+
+		// for each job from bot jobs list
+		foreach (explode('|', App::env('BOT_JOBS', '')) as $job)
+			if (!empty($job)) {
+				[$action, $schedule] = explode(':', $job, 2);
+
+				// calc the job schedule
+				$next_time = (new Scheduler($schedule))->next($now);
+
+				$next_jobs_todo[$action] = $next_time->format(DateTimeInterface::ATOM);
+			}
+
+		return $next_jobs_todo;
+	}
+	
+	/**
+	 * 
+	 * Get bot jobs list with activity status
+	 * 
+	 * @return array jobs list [{'action', 'schedule', 'active'},...]
+	 */
+	public function getJobsList() {
+		$jobs = [];
+
+		// get option to check is job active
+		$active_jobs = $this->getOption(self::ON_ACTIVE_JOBS);
+
+		// for each job from bot jobs list
+		foreach (explode('|', App::env('BOT_JOBS', '')) as $job)
+			if (!empty($job)) {
+				[$action, $schedule] = explode(':', $job, 2);
+				$active = $active_jobs[$action] ?? true;
+
+				$jobs[] = compact('action', 'schedule', 'active');
+			}
+
+		return $jobs;
 	}
 	
 	/**

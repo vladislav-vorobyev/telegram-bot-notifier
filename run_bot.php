@@ -34,6 +34,7 @@ Storage::get('Router')->setRoutes([
     ['GET', '/ping-websites', ['BotController', 'pingWebsites']],
     ['GET', '/test-msg', ['BotController', 'testMessage']],
     ['GET', '/bot-info', ['BotController', 'botInfo']],
+    ['GET', '/run-jobs', ['BotController', 'runJobs']],
     ['GET', '/ozon', ['OZONController', 'doCheck']],
     ['GET', '/ozon-status', ['OZONController', 'doCheckStatus']],
     ['GET', '/ozon-info', ['OZONController', 'info']],

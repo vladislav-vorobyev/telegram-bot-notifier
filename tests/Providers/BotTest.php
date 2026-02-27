@@ -329,6 +329,16 @@ class BotTest extends LocalTestCase
                 ['SELECT * FROM bot_options', [0, 'chat_00_status']]
             ]],
 
+            ['/jobs', [], [
+                ['SELECT * FROM bot_options', [0, 'active-jobs']],
+            ]],
+
+            ['/job_1', [], [
+                ['SELECT * FROM bot_options', [0, 'active-jobs']],
+                ['INSERT INTO bot_options', [0, 'active-jobs', self::ANY_VALUE]],
+                ['SELECT * FROM bot_options', [0, 'active-jobs']],
+            ]],
+
             ['/mainchats', [], [
                 ['INSERT INTO bot_log', [0, 'getChat', '{"chat_id":"22"}', '{"ok":1,"result":{"type":"group","title":"title"}}']],
                 ['INSERT INTO a_log', [0, 'tbot-send', 'getChat', '{"chat_id":"22"}']],
@@ -395,6 +405,89 @@ class BotTest extends LocalTestCase
         $this->assertDBHistory([[
             'INSERT INTO a_log', [0, 'warning', 'Access forbidden from the chat 11']
         ]]);
+    }
+
+    /**
+     * @depends testCreation
+     * @dataProvider getNextJobsTodoDataProvider
+     */
+    public function testgetNextJobsTodo($bot_jobs, $date_time, $jobs_todo)
+    {
+        $_SERVER['BOT_JOBS'] = $bot_jobs;
+        $result = Storage::get('Bot')->getNextJobsTodo(new \DateTime($date_time));
+        
+        $this->assertEquals($jobs_todo, $result);
+    }
+
+    public function getNextJobsTodoDataProvider()
+    {
+        return [
+            ['/ozon:1,11,21,31,41,51|/wb:22:00', '2026-01-01 12:13', [
+                '/ozon' => '2026-01-01T12:21:00+00:00',
+                '/wb' => '2026-01-01T22:00:00+00:00',
+            ]],
+            ['/ozon:1,11,21,31,41,51|/wb:22:22|/test:*/5', '2026-01-01 23:13', [
+                '/ozon' => '2026-01-01T23:21:00+00:00',
+                '/wb' => '2026-01-02T22:22:00+00:00',
+                '/test' => '2026-01-01T23:15:00+00:00',
+            ]],
+        ];
+    }
+
+    /**
+     * @depends testCreation
+     * @dataProvider runJobsTodoDataProvider
+     */
+    public function testrunJobsTodo($db_reset, $jobs_todo, $date_time, $db_history)
+    {
+        Storage::get('DBSimple')->reset(...$db_reset);
+        Storage::get('Bot')->runJobsTodo($jobs_todo, new \DateTime($date_time));
+        
+        // $this->outputDBHistory();
+        $this->assertDBHistory($db_history);
+    }
+
+    public function runJobsTodoDataProvider()
+    {
+        return [
+            [
+                [[['value' => '::S::a:1:{s:5:"/ozon";b:1;}']]],
+                ['/ozon' => '2026-01-02T00:01:00+00:00'],
+                '2026-01-02 01:13', [
+                    ['SELECT * FROM bot_options', [0, 'active-jobs']],
+                ]
+            ],
+        ];
+    }
+
+    /**
+     * @depends testCreation
+     * @depends testgetNextJobsTodo
+     * @depends testrunJobsTodo
+     * @dataProvider runJobsDataProvider
+     */
+    public function testrunJobs($bot_jobs, $db_reset, $db_history)
+    {
+        $_SERVER['BOT_JOBS'] = $bot_jobs;
+        Storage::get('DBSimple')->reset(...$db_reset);
+        Storage::get('Bot')->runJobs();
+        
+        // $this->outputDBHistory();
+        $this->assertDBHistory($db_history);
+    }
+
+    public function runJobsDataProvider()
+    {
+        return [
+            ['', [], [
+                ['INSERT INTO bot_options', [0, 'jobs-todo', '::S::a:0:{}']],
+                ['SELECT * FROM bot_options', [0, 'jobs-todo']],
+                ['SELECT * FROM bot_options', [0, 'active-jobs']],
+            ]],
+            ['/ozon:1,21,41|/wb:22:00|/wb-check-discount:10:01', [], [
+                ['INSERT INTO bot_options', [0, 'jobs-todo', self::ANY_VALUE]],
+            ]],
+        ];
     }
 
     /**

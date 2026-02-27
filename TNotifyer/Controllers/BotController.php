@@ -94,11 +94,7 @@ class BotController extends AbstractWebController {
      */
     public function pingWebsites()
     {
-        // run
-        $this->response->print(Storage::get('Bot')->pingWebsites());
-
-        // response
-        return $this->response->text('Done.');
+        return $this->response->print(Storage::get('Bot')->pingWebsites());
     }
 
     /**
@@ -109,5 +105,19 @@ class BotController extends AbstractWebController {
     public function botInfo()
     {
         return $this->response->print(Storage::get('Bot')->info());
+    }
+
+    /**
+     * Run Bot jobs.
+     * 
+     * @return Response current response
+     */
+    public function runJobs()
+    {
+        // run
+        Storage::get('Bot')->runJobs();
+
+        // response
+        return $this->response->text('Done.');
     }
 }
