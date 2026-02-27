@@ -57,7 +57,7 @@ class OZONProvider {
 	 * Make request to OZON API
 	 * 
 	 * @param string url to make a post request
-	 * @param array request content
+	 * @param mixed request content
 	 * 
 	 * @return mixed response (OZON API)
 	 */
@@ -342,12 +342,12 @@ class OZONProvider {
 
 		if (empty($data)) {
 			$this->last_error_message = 'OZON empty response or JSON error';
-			Log::put('error', $this->last_error_message);
+			Log::put('error', $this->last_error_message, ['request' => Storage::get('CURL')->last_request]);
 			throw new ExternalRequestException($this->last_error_message);
 
 		} elseif (!isset($r_postings)) {
 			$this->last_error_message = 'OZON wrong response';
-			Log::put('error', $this->last_error_message, $data);
+			Log::put('error', $this->last_error_message, ['request' => Storage::get('CURL')->last_request, 'response' => $data]);
 			throw new ExternalRequestException($this->last_error_message);
 		}
 
@@ -410,14 +410,17 @@ class OZONProvider {
 	}
 
 	/**
-	 * Prepare products lines text
+	 * Prepare order text with products lines
 	 * 
 	 * @param mixed posting data
 	 * 
 	 * @return string text to show
 	 */
-	public function getProductsText($posting) {
-		$text = '';
+	public function getOrderText($posting) {
+		// order number
+		$text = "<code>{$posting['posting_number']}</code>";
+
+		// products lines
 		if (isset($posting['products'])) {
 			foreach ($posting['products'] as &$product) {
 				if (isset($product['name'])) {
@@ -426,6 +429,7 @@ class OZONProvider {
 				}
 			}
 		}
+
 		return $text;
 	}
 
@@ -438,7 +442,7 @@ class OZONProvider {
 	 */
 	public function sendNewPostingInfo($posting) {
 		// prepare message text
-		$text = "<b>OZON</b>\nНовый заказ: <code>{$posting['posting_number']}</code>" . $this->getProductsText($posting);
+		$text = "<b>OZON</b>\nНовый заказ: " . $this->getOrderText($posting);
 
 		// send message
 		return Storage::get('Bot')->sendToMainChats($text, 'HTML');
@@ -459,7 +463,8 @@ class OZONProvider {
 
 		// prepare message text
 		$text = empty($message_id)? "<b>OZON</b>\n" : '';
-		$text .= "Отменен заказ: <code>{$posting['posting_number']}</code>" . $this->getProductsText($posting);
+		$order_text = $this->getOrderText($posting);
+		$text .= "<tg-emoji emoji-id='5368324170671202286'>❌</tg-emoji> Отменен заказ: {$order_text}";
 		$r_cancel_reason = &$posting['cancellation']['cancel_reason'];
 		if (isset($r_cancel_reason)) {
 			$text .= "\n<i>{$r_cancel_reason}</i>";

@@ -14,6 +14,11 @@ namespace TNotifyer\Providers;
 class FakeCURL {
 
 	/**
+	 * @var mixed last request {'url','method','postfields'}
+	 */
+	public $last_request;
+
+	/**
 	 * @var mixed value for result of request
 	 */
 	public $result = '';
@@ -38,6 +43,11 @@ class FakeCURL {
 	 * @param mixed request body (optional)
 	 */
 	public function request($url, $method = 'GET', $headers = [], $postfields = '') {
+		$this->last_request = [
+			'url' => $url,
+			'method' => $method,
+			'postfields' => $postfields,
+		];
 		return $this->result;
 	}
 
@@ -69,6 +79,10 @@ class FakeCURL {
 	 * @param array request headers (optional)
 	 */
 	public function head($url, $headers = []) {
+		$this->last_request = [
+			'url' => $url,
+			'method' => 'HEAD',
+		];
 		return $this->result;
 	}
 

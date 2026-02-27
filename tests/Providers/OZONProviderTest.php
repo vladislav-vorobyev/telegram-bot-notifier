@@ -75,11 +75,11 @@ class OZONProviderTest extends LocalTestCase
         $this->assertEmpty(Storage::get('OZON')->lastErrorMessage());
     }
 
-    public function testgetProductsText()
+    public function testgetOrderText()
     {
         Storage::get('DBSimple')->reset();
         Storage::set('OZON', new OZONProvider('00','AA'));
-        $this->assertNotEmpty(Storage::get('OZON')->getProductsText(self::POSTING_EXAMPLE));
+        $this->assertNotEmpty(Storage::get('OZON')->getOrderText(self::POSTING_EXAMPLE));
     }
 
     /**
