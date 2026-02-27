@@ -22,12 +22,12 @@ class TelegramBot {
     /**
      * Telegram API URL
      */
-	const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
+	public const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
 	
     /**
      * Max length of code block to send in alarm message
      */
-	const ALARM_CODE_LENGTH = 500;
+	public const ALARM_CODE_LENGTH = 500;
 	
     /**
      * @var string Telegram bot API id
@@ -413,7 +413,7 @@ class TelegramBot {
 	 * @param bool store an action to log (true by default)
 	 * @param array more postfields to send (optional)
 	 * 
-	 * @return mixed message id or false
+	 * @return int|bool message id or false
 	 */
 	public function sendMessage($chat_id, $text, $parse_mode = '', $do_log = true, $more_fields = null) {
 		// Telegram API action and request data
@@ -442,7 +442,7 @@ class TelegramBot {
 	 * @param bool store an action to log (true by default)
 	 * @param array more postfields to send (optional)
 	 * 
-	 * @return array of message id
+	 * @return array ['chat_id' => 'message_id', ...]
 	 */
 	public function sendToMainChats($text, $parse_mode = '', $do_log = true, $more_fields = []) {
 		$result = [];
@@ -462,7 +462,7 @@ class TelegramBot {
 	 * @param string parse mode of the message (optional)
 	 * @param bool store an action to log (true by default)
 	 * 
-	 * @return array of message id
+	 * @return array ['chat_id' => 'message_id', ...]
 	 */
 	public function replyToMainChats($reply_ids, $text, $parse_mode = '', $do_log = true) {
 		$result = [];
@@ -482,7 +482,7 @@ class TelegramBot {
 	 * @param bool store an action to log (false by default)
 	 * @param array more postfields to send (optional)
 	 * 
-	 * @return bool status of the operation
+	 * @return int|bool message id or status of the operation
 	 */
 	public function sendToAlarmChat($message, $parse_mode = '', $do_log = false, $more_fields = null) {
 		return $this->sendMessage($this->admin_chat_id, $message, $parse_mode, $do_log, $more_fields);
@@ -494,12 +494,14 @@ class TelegramBot {
 	 * @param string message
 	 * @param mixed data to send (optional)
 	 * 
-	 * @return mixed message id or false
+	 * @return bool status of the operation
 	 */
 	public function alarm($message, $data = null) {
-		$status = $this->sendToAlarmChat("[{$this->bot_host_id}] $message", '');
-		if (!is_null($data))
-			$status = $status && $this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');
+		$status = false !== $this->sendToAlarmChat("[{$this->bot_host_id}] $message", '');
+		if (null !== $data) {
+			$status2 = false !== $this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');
+			$status = $status && $status2;
+		}
 		return $status;
 	}
 	

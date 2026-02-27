@@ -161,7 +161,7 @@ class BotTest extends LocalTestCase
             'result' => ['message_id' => '123']
         ]));
         $status = Storage::get('Bot')->alarm('Test alarm', ['test'=>1]);
-        $this->assertEquals(123, $status);
+        $this->assertEquals(true, $status);
         $this->assertEquals(false, isset( Storage::get('DBSimple')->last_sql ));
     }
 
