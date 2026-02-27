@@ -60,6 +60,79 @@ class BotTest extends LocalTestCase
 
     /**
      * @depends testCreation
+     * @dataProvider getOptionDataProvider
+     */
+    public function testgetOption($rows, $value)
+    {
+        Storage::get('DBSimple')->reset($rows);
+        $result = Storage::get('Bot')->getOption('test');
+
+        // $this->outputDBHistory();
+        $this->assertEquals($value, $result);
+    }
+
+    public function getOptionDataProvider()
+    {
+        return [
+            'val' => [[['value'=>'val']], 'val'],
+            'int' => [[['value'=>'::S::i:123;']], 123],
+            'array' => [[['value'=>'::S::a:2:{s:1:"a";i:1;s:1:"b";s:1:"2";}']], ['a'=>1,'b'=>'2']],
+            'string' => [[['value'=>'::S::abc']], '::S::abc'],
+            'empty' => [[['value'=>'']], ''],
+            'empty array' => [[['value'=>'::S::a:0:{}']], []],
+            'true' => [[['value'=>'::S::b:1;']], true],
+            'false' => [[['value'=>'::S::b:0;']], false],
+            'null' => [[['value'=>'::S::N;']], null],
+        ];
+    }
+
+    /**
+     * @depends testCreation
+     * @dataProvider setOptionDataProvider
+     */
+    public function testsetOption($db_reset, $value, $db_history)
+    {
+        Storage::get('DBSimple')->reset(...$db_reset);
+        Storage::get('Bot')->setOption('test', $value);
+
+        // $this->outputDBHistory();
+        $this->assertDBHistory($db_history);
+    }
+
+    public function setOptionDataProvider()
+    {
+        return [
+            'insert val' => [[], 'val', [
+                ['INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?, ?, ?)', [0, 'test', 'val']],
+                ['SELECT * FROM bot_options WHERE bot_id=? AND `key`=?', [0, 'test']],
+            ]],
+            'update val' => [[['value'=>'']], 'val', [
+                ['UPDATE bot_options SET `value`=? WHERE bot_id=? AND `key`=?', ['val', 0, 'test']],
+                ['SELECT * FROM bot_options WHERE bot_id=? AND `key`=?', [0, 'test']],
+            ]],
+            'int' => [[], 123, [
+                ['INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?, ?, ?)', [0, 'test', '::S::i:123;']],
+            ]],
+            'array' => [[], ['a'=>1,'b'=>'2'], [
+                ['INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?, ?, ?)', [0, 'test', '::S::a:2:{s:1:"a";i:1;s:1:"b";s:1:"2";}']],
+            ]],
+            'empty array' => [[], [], [
+                ['INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?, ?, ?)', [0, 'test', '::S::a:0:{}']],
+            ]],
+            'true' => [[], true, [
+                ['INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?, ?, ?)', [0, 'test', '::S::b:1;']],
+            ]],
+            'false' => [[], false, [
+                ['INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?, ?, ?)', [0, 'test', '::S::b:0;']],
+            ]],
+            'null' => [[], null, [
+                ['INSERT INTO bot_options (bot_id, `key`, `value`) VALUES (?, ?, ?)', [0, 'test', '::S::N;']],
+            ]],
+        ];
+    }
+
+    /**
+     * @depends testCreation
      */
     public function testCheckUpdates()
     {

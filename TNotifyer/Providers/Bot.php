@@ -31,25 +31,39 @@ class Bot extends TelegramBot {
 	 * Get the bot option
 	 * 
 	 * @param string option key
-	 * @param string option default value
+	 * @param mixed option default value (optional)
 	 * 
 	 * @return mixed option value or default
 	 */
 	public function getOption($key, $default = false) {
 		$option = DB::get_bot_option($this->bot_id, $key);
-		return $option['value'] ?? $default;
+		if (isset($option['value'])) {
+			$value = $option['value'];
+			// maybe unserialize
+			if ('::S::' == substr($value, 0, 5)) {
+				try {
+					$value = unserialize(substr($value, 5));
+				} catch(\Exception $e) {
+					Log::put('error', "Unserialize '{$key}' value fail. " . $e->getMessage());
+				}
+			}
+			return $value;
+		}
+		// return default value
+		return $default;
 	}
 	
 	/**
 	 * Set the bot option
 	 * 
 	 * @param string option key
-	 * @param string option
+	 * @param mixed option value
 	 * 
 	 * @return bool action status
 	 */
 	public function setOption($key, $value) {
-		return 1 == DB::save_bot_option($this->bot_id, $key, $value);
+		if (!is_string($value)) $value = '::S::' . serialize($value);
+		return false !== DB::save_bot_option($this->bot_id, $key, $value);
 	}
 	
 	/**
