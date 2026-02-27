@@ -40,17 +40,17 @@ class TelegramBot {
 	protected $api_key;
 	
     /**
-     * @var string Full Telergam API path for bot
+     * @var string Full Telegram API path for bot
      */
 	protected $api_path;
 	
     /**
-     * @var string Telergam bot webhook secret token
+     * @var string Telegram bot webhook secret token
      */
 	protected $api_secret_token;
 	
     /**
-     * @var mixed Telergam bot user (got from API via getMe)
+     * @var mixed Telegram bot user (got from API via getMe)
      */
 	protected $info;
 	
@@ -65,12 +65,12 @@ class TelegramBot {
 	protected $bot_host_id;
 	
     /**
-     * @var string Telergam alarm chat id (to notify on error)
+     * @var string Telegram alarm chat id (to notify on error)
      */
 	protected $admin_chat_id;
 
     /**
-     * @var array Telergam main chats ids
+     * @var array Telegram main chats ids
      */
 	protected $main_chats_ids;
 	
@@ -82,7 +82,7 @@ class TelegramBot {
 	 * @param int T-bot id (in DB identity)
 	 * @param int T-bot host id (web hosting identity)
 	 * @param string Telegram bot API token
-	 * @param string Telergam admin/alarm chat id (to manage and notify on error)
+	 * @param string Telegram admin/alarm chat id (to manage and notify on error)
 	 */
 	public function __construct($bot_id, $bot_host_id, $api_token, $admin_chat_id) {
 
@@ -94,7 +94,7 @@ class TelegramBot {
 		$parsed_token = explode(':', $api_token, 2);
 		if (empty($parsed_token[1]))
 			throw new InternalException('Wrong Telegram Bot token structure!');
-		list($this->api_id, $this->api_key) = $parsed_token;
+		[$this->api_id, $this->api_key] = $parsed_token;
 
 		// prepare API request uri and secret_token
 		$this->api_path = self::TELEGRAM_API_URL . $api_token . '/';
@@ -117,7 +117,7 @@ class TelegramBot {
 	/**
 	 * API Id getter
 	 * 
-	 * @return int bot API id
+	 * @return string bot API id
 	 */
 	public function getAPIId() {
 		return $this->api_id;
@@ -144,7 +144,7 @@ class TelegramBot {
 	/**
 	 * Admin chat id getter
 	 * 
-	 * @return int admin chat id
+	 * @return string admin chat id
 	 */
 	public function getAdminChatId() {
 		return $this->admin_chat_id;
@@ -264,27 +264,32 @@ class TelegramBot {
 	 * @param mixed incoming API update
 	 */
 	public function checkUpdate($update) {
-		// inspecting my_chat_member update
-		$r_status = &$update['my_chat_member']['new_chat_member']['status'];
-		$r_user_id = &$update['my_chat_member']['new_chat_member']['user']['id'];
-		$r_chat_id = &$update['my_chat_member']['chat']['id'];
-		$r_chat_title = &$update['my_chat_member']['chat']['title'];
+		// do not throw exception on bot update
+		try {
+			// inspecting my_chat_member update
+			$r_status = &$update['my_chat_member']['new_chat_member']['status'];
+			$r_user_id = &$update['my_chat_member']['new_chat_member']['user']['id'];
+			$r_chat_id = &$update['my_chat_member']['chat']['id'];
+			$r_chat_title = &$update['my_chat_member']['chat']['title'];
 
-		// if this bot added/removed like member to/from chat
-		if ($this->api_id == ($r_user_id ?? '') && isset($r_chat_id)) {
-			if ('member' == ($r_status ?? '')) {
-				// add chat into main list
-				DB::save_bot_chats($this->bot_id, $r_chat_id, 'main', $r_chat_title);
-				// notify about adding
-				$this->sendToAlarmChat("Привязан новый чат для оповещений: " . ($r_chat_title ?? ''));
+			// if this bot added/removed like member to/from chat
+			if ($this->api_id == ($r_user_id ?? '') && isset($r_chat_id)) {
+				if ('member' == ($r_status ?? '')) {
+					// store chat into main list
+					DB::save_bot_chats($this->bot_id, $r_chat_id, 'main', $r_chat_title);
+					// notify about adding
+					$this->sendToAlarmChat("Привязан новый чат для оповещений: " . ($r_chat_title ?? ''));
+				}
+				if ('left' == ($r_status ?? '')) {
+					// remove chat from main list
+					DB::remove_bot_chats($this->bot_id, $r_chat_id);
+				}
 			}
-			if ('left' == ($r_status ?? '')) {
-				// remove chat from main list
-				DB::remove_bot_chats($this->bot_id, $r_chat_id);
-			}
+			
+			unset($r_status, $r_user_id, $r_chat_id, $r_chat_title);
+		} catch(\Exception $e) {
+			Log::put('error', "Fail my_chat_member update check. " . $e->getMessage());
 		}
-		
-		unset($r_status, $r_user_id, $r_chat_id, $r_chat_title);
 	}
 	
 	/**
@@ -489,12 +494,12 @@ class TelegramBot {
 	 * @param string message
 	 * @param mixed data to send (optional)
 	 * 
-	 * @return bool status of the operation
+	 * @return mixed message id or false
 	 */
 	public function alarm($message, $data = null) {
 		$status = $this->sendToAlarmChat("[{$this->bot_host_id}] $message", '');
 		if (!is_null($data))
-			$status = $status and $this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');
+			$status = $status && $this->sendToAlarmChat('<code>' . self::convertToJson($data) . '</code>', 'HTML');
 		return $status;
 	}
 	
