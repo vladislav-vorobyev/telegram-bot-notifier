@@ -1,14 +1,14 @@
 # Set an environment variables
 <IfModule mod_env.c>
-SetEnv SITE_URI /v1/
+SetEnv BOT_JOBS /ping-websites:*|/watch-dog:22:05|/ozon-status:1|/ozon:11,21,31,41,51
 SetEnv ROOT_URI /v1/
+SetEnv SRC_URI /v1/
 SetEnv BOT_INTERNAL_ID 1
 SetEnv BOT_HOST_ID 1
 SetEnv BOT_TOKEN 1234567890:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 SetEnv ADMIN_CHAT_ID 123456789
 SetEnv CRYPTO_KEY AAAAAAAAAAAAAAAAAAAA
 SetEnv CRYPTO_SALT AAAAAAAAAAAAAAAA
-SetEnv BOT_JOBS /watch-dog:22:05|/ozon-status:1|/ozon:11,21,31,41,51
 </IfModule>
 
 # Перенаправить все в index.php

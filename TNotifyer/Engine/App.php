@@ -19,7 +19,7 @@ class App {
      * Application variables
      */
     const VARIABLES = [
-        'version' => '1.4.0',
+        'version' => '1.5.0',
         'name' => 'Telegram Notifyer',
     ];
 
@@ -39,12 +39,12 @@ class App {
      */
     public function run()
     {
-        // Catch all Exceptions and make error response
+        // Catch all Exceptions and pass into error response
         try {
-            // Get this application router and determine current request
+            // Get this application router and determine current route
             $current_route = Storage::get('Router')->getCurrent();
 
-            // Execute the request controller method
+            // Execute the route
             $response = $this->execute($current_route);
 
             // Output the response
@@ -129,7 +129,7 @@ class App {
         return [
             'name' => self::var('name'),
             'version' => self::var('version'),
-            'SITE_URI' => self::env('SITE_URI', '/'),
+            'SRC_URI' => self::env('SRC_URI', '/'),
             'ROOT_URI' => self::env('ROOT_URI'),
             'BOT_INTERNAL_ID' => self::env('BOT_INTERNAL_ID'),
             'BOT_HOST_ID' => self::env('BOT_HOST_ID'),

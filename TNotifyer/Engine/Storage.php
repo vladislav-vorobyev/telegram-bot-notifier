@@ -24,7 +24,7 @@ class Storage {
      * 
      * @param string object name
      * 
-     * @return Object an object from storage
+     * @return mixed an object from storage
      */
     static public function get($name)
     {
@@ -36,9 +36,9 @@ class Storage {
      * Put an object to storage.
      * 
      * @param string object name
-     * @param Object an object to put
+     * @param mixed an object to put
      * 
-     * @return Object set object
+     * @return mixed set object
      */
     static public function set($name, $dependency)
     {
