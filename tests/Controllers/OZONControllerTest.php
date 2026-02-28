@@ -31,47 +31,33 @@ class OZONControllerTest extends LocalTestCase
         Storage::set('Bot', new FakeBot(0));
     }
 
-    public function testInfo() {
+    /**
+     * @dataProvider methodDataProvider
+     */
+    public function testMethod($name)
+    {
         Storage::get('DBSimple')->reset();
         $controller = new OZONController();
-        $response = $controller->info();
+        $response = $controller->{$name}();
+
         $this->assertInstanceof('TNotifyer\Engine\Response', $response);
         $this->assertEquals(200, $response->code);
     }
 
-    public function testDoCheck() {
-        Storage::get('DBSimple')->reset();
-        $controller = new OZONController();
-        $response = $controller->doCheck();
-        $this->assertInstanceof('TNotifyer\Engine\Response', $response);
-        $this->assertEquals(200, $response->code);
+    public function methodDataProvider()
+    {
+        return [
+            ['info'],
+            ['doCheck'],
+            ['doCheckStatus'],
+            ['makeFBSListTest'],
+            ['makeCancelledFBSListTest'],
+            ['makeUnfulfilledFBSListTest'],
+        ];
     }
 
-    public function testMakeFBSListTest() {
-        Storage::get('DBSimple')->reset();
-        $controller = new OZONController();
-        $response = $controller->makeFBSListTest();
-        $this->assertInstanceof('TNotifyer\Engine\Response', $response);
-        $this->assertEquals(200, $response->code);
-    }
-
-    public function testMakeCancelledFBSListTest() {
-        Storage::get('DBSimple')->reset();
-        $controller = new OZONController();
-        $response = $controller->makeCancelledFBSListTest();
-        $this->assertInstanceof('TNotifyer\Engine\Response', $response);
-        $this->assertEquals(200, $response->code);
-    }
-
-    public function testMakeUnfulfilledFBSListTest() {
-        Storage::get('DBSimple')->reset();
-        $controller = new OZONController();
-        $response = $controller->makeUnfulfilledFBSListTest();
-        $this->assertInstanceof('TNotifyer\Engine\Response', $response);
-        $this->assertEquals(200, $response->code);
-    }
-
-    public function testGetPosting() {
+    public function testGetPosting()
+    {
         Storage::get('DBSimple')->reset();
         Storage::set('Request', new FakeRequest('GET', '/v1/?num=123'));
         $controller = new OZONController();
